@@ -14,7 +14,7 @@ export default function DeckSidebar() {
       {/* header */}
       <header className="flex items-center justify-between">
         <h2 className="font-bold text-lg">Current Deck</h2>
-        {stats.legal60 && stats.noOverCopies ? (
+        {!stats.metadataIncomplete ? (
           <span className="text-green-600 text-xl">✓</span>
         ) : (
           <span className="text-red-600 text-xl">✗</span>
@@ -22,8 +22,9 @@ export default function DeckSidebar() {
       </header>
 
       <p className="text-sm">
-        {stats.numCards}/60 cards
-        {!stats.noOverCopies && " (too many copies)"}
+        {stats.numCards} cards
+        {stats.metadataIncomplete &&
+          " (import authoritative metadata to validate)"}
       </p>
 
       {/* empty state */}

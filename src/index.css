@@ -1,68 +1,198 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #dfdfd3;
+  background: #101512;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+* {
+  box-sizing: border-box;
 }
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
-  min-height: 100vh;
 }
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+button,
+.button {
   cursor: pointer;
-  transition: border-color 0.25s;
+  border: 1px solid #3b4639;
+  border-radius: 8px;
+  background: #243026;
+  color: #e6e5d8;
+  padding: 10px 14px;
+  transition: background 0.15s;
 }
-button:hover {
-  border-color: #646cff;
+button:hover,
+.button:hover {
+  background: #334331;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+a {
+  color: #d3b879;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+input,
+select,
+textarea {
+  color: #e6e5d8;
+  background: #111812;
+  border: 1px solid #3b4639;
+  border-radius: 7px;
+  padding: 10px;
+  min-width: 0;
+}
+textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 12px 0;
+  color: #b6bead;
+  font-size: 13px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #e0c58c;
+  outline-offset: 3px;
+}
+h1,
+h2,
+h3 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  color: #ede9dd;
+}
+h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.18;
+  letter-spacing: -1.8px;
+  margin: 12px 0 24px;
+}
+h2 {
+  font-size: 24px;
+  letter-spacing: -0.6px;
+  margin: 10px 0;
+}
+h3 {
+  font-size: 17px;
+}
+p {
+  line-height: 1.7;
+  color: #a6afa0;
+}
+small {
+  color: #a6afa0;
+}
+summary {
+  cursor: pointer;
+  padding: 10px 0;
+}
+pre {
+  white-space: pre-wrap;
+}
+.primary {
+  background: #c5aa73;
+  color: #182013;
+  border-color: #c5aa73;
+  font-weight: 700;
+}
+.primary:hover {
+  background: #e1ca94;
+}
+.hidden {
+  display: none !important;
+}
+h1,
+h2 {
+  font-weight: 400;
+  letter-spacing: -0.7px;
+}
+h3 {
+  font-weight: 500;
+}
+button,
+.button {
+  border-radius: 5px;
+  font-size: 13px;
+}
+input,
+select,
+textarea {
+  border-radius: 5px;
+  font-size: 13px;
+  padding: 11px;
+}
+button.primary,
+.primary {
+  background: #d1b77c;
+  border-color: #d1b77c;
+  color: #172013;
+  font-weight: 600;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #8f9c86;
+}
+input[type="checkbox"] {
+  accent-color: #cfb57a;
+}
+select {
+  max-width: 100%;
+}
+details {
+  border-top: 1px solid #354431;
+  margin: 14px 0;
+  padding-top: 4px;
+}
+summary {
+  color: #c4cdb6;
+  font-size: 12px;
+}
+p {
+  font-size: 13px;
+}
+label {
+  font-size: 12px;
+  color: #b2bda5;
+}
+.empty {
+  color: #a6b397;
+}
+.oracle {
+  font-size: 14px;
+  line-height: 1.8;
+}
+body {
+  background: #101712;
+}
+a {
+  color: #d3b879;
+}
+/* iOS zooms focused inputs below 16px; preserve the mobile viewport. */
+@media (max-width: 700px) {
+  input,
+  select,
+  textarea,
+  .search input {
+    font-size: 16px;
   }
 }

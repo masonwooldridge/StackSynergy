@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 /** ───── minimal card shape we care about ───── */
 export interface Card {
-  id: string;          // Scryfall ID
+  id: string; // Scryfall ID
   name: string;
   imageUrl: string;
 }
@@ -20,17 +20,10 @@ interface DeckState {
 
 /** derived stats helper */
 export function getDeckStats(
-  deck: Record<string, { card: Card; qty: number }>
+  deck: Record<string, { card: Card; qty: number }>,
 ) {
-  const numCards = Object.values(deck).reduce((s, e) => s + e.qty, 0);
-  const overCopies = Object.values(deck).filter(
-    (e) => e.qty > 4 && !e.card.name.toLowerCase().includes("basic")
-  );
-  return {
-    numCards,
-    legal60: numCards === 60,
-    noOverCopies: overCopies.length === 0,
-  };
+  const numCards = Object.values(deck).reduce((n, e) => n + e.qty, 0);
+  return { numCards, metadataIncomplete: true };
 }
 
 export const useDeckStore = create<DeckState>()(
@@ -59,7 +52,8 @@ export const useDeckStore = create<DeckState>()(
           const entry = state.deck[id];
           if (!entry) return state;
           if (entry.qty === 1) {
-            const { [id]: _, ...rest } = state.deck;
+            const rest = { ...state.deck };
+            delete rest[id];
             return { deck: rest };
           }
           return {
@@ -69,12 +63,13 @@ export const useDeckStore = create<DeckState>()(
 
       removeCard: (id) =>
         set((state) => {
-          const { [id]: _, ...rest } = state.deck;
+          const rest = { ...state.deck };
+          delete rest[id];
           return { deck: rest };
         }),
 
       clearDeck: () => set({ deck: {} }),
     }),
-    { name: "card-chasm-deck" }
-  )
+    { name: "card-chasm-deck" },
+  ),
 );
