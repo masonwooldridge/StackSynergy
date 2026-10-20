@@ -1,4 +1,4 @@
-# CardChasm implementation
+# StackSynergy implementation
 
 Started 2026-10-12. Existing React/TypeScript/Vite app evolved in place. Original uncommitted package and lockfile edits retained. Original `card-chasm-deck` browser storage remains untouched; Settings offers an explicit verified copy into account storage.
 
@@ -65,3 +65,111 @@ Added immutable solo state engine, full-state undo/redo for the active session, 
 Tightened Home/library/editor spacing, reduced repeated dashboard blocks, used compact neutral card rows and improved card art prominence while preserving the dark mana palette. No ManaBox branding or assets reused.
 
 Browser acceptance: reviewed opening hand, mulliganed to six with selected bottom card, kept, moved land to battlefield, tapped, reduced life, next-turn untap/draw, then undo restored turn, hand, library and tap state together. At 390px, resumed game after refresh with life 19, turn 1, five-card hand, 54-card library and tapped land; no horizontal document overflow, all hand images loaded. Enlarged card dialog opened and restored focus on close. Desktop Safari reviewed separately. Native simulator still times out; Expo visual acceptance remains blocked, not claimed.
+
+## Reliability increment — October 13, 2026
+
+Reviewed baseline bf69233 and preserved the pre-existing package.json, package-lock.json, tsconfig.json and .expo changes. No synced project references, account records, collection quantities, decks or original MVP storage were used as disposable fixtures.
+
+Implemented:
+- Central public-piece policy, member checks before command deduplication, private counter logs and scrubbing of historical counter logs in serialized views. Validation diagnostics are visible only to the deck owner. Zone changes clear tap/counter/face state.
+- Durable server proposals bound to account/deck/revision and budget/owned-only constraints. Model output specifies exact cut entry IDs, quantities and addition boards. Review has individual selection and exact quantities; atomic server application rechecks ownership/revision, quantity coverage and total budget, and rejects repeat application. Ambiguous transport errors in gameplay retry one stable command ID once. No paid model call performed.
+- Server deck fact resolution before verified room loading, with cached provider facts replacing client rule metadata. Casual loading is explicitly labeled unverified; every player must agree before starting with an unchecked deck. Missing/special construction facts remain incomplete. Unfinished decks remain saveable.
+- Rules reviewed against the September 25, 2026 comprehensive rules linked from the official rules page: qualifying Vehicle/Spacecraft eligibility, standalone Background rejection, front-face eligibility, matching partner variants and Doctor's companion type constraints. This is not a comprehensive construction-rule implementation; companion and unimplemented special conditions require manual review.
+- Global browsing no longer assigns the selected document as destination. Printing lookups aggregate all pages for both details and set-based imports. Printing filter, printing-specific language/available finishes and matching finish price; quick additions choose an available finish.
+- URL screen/document/query/destination context, browser Back/Forward, retained in-memory search results/filters. Search query and document survive refresh. Full filter/scroll restoration across refresh remains incomplete.
+- Scanner worker reuse with cleanup; duplicate suppression limited to recent camera text frames, uploads treated independently, explicit scan-another-copy, navigation-persisted review queue, thumbnails and secondary recognition diagnostics. This is still heuristic text recognition, not physical-copy tracking or a complete batch-save workflow.
+- Monotonic room response acceptance, no resurrection after leaving, intentional leave/concede, host transfer, last-member cleanup, finished games and exclusion of stale public lobbies. Full disconnect grace/archive lifecycle and four-client acceptance remain open.
+- Solo saved-state shape validation and visible persistence errors, preserving undo/redo behavior. CI added for isolated tests/build/lint and mobile typecheck/lint.
+
+Evidence: 64 automated tests, build, web lint, mobile typecheck/lint pass. Browser deck → global Search → Lightning Bolt → details → close retained empty destination; Back/Forward returned to deck/search with query/results. Screenshot: docs/screenshots/reliability-search.jpg. Full failure/evidence/limitations and run instructions are in RELIABILITY.md and VERIFICATION.md. This increment does not complete the full requested application scope.
+
+Guest-first local library and a constraint-checked, rules-based full Commander builder are implemented. See GUEST-AND-FULL-BUILDER.md for safe account copies, verification and native/offline limits.
+
+Deck-journal redesign implemented and rendered at mobile/tablet/desktop sizes. See JOURNAL-DESIGN.md for before/after evidence,108 passing tests and remaining native/shortcut limits.
+
+## Dark card room visual pass — October16,2026
+
+Implemented Mason’s ManaBox-inspired charcoal/minimal-color direction; see DARK-DESIGN.md for exact scope, run instructions, verified results and screenshots. Preserves guest/account/full-builder/upgrades/playtest behavior.
+
+## StackSynergy identity polish — October16,2026
+
+Dark direction retained; licensed local typography, split-card crest, sharper details implemented and rendered offscreen. See IDENTITY-POLISH.md. Native review deferred during Roblox capture.
+
+## Commander usability repair — October16,2026
+
+Reproduced exact-name/Enter/focus failures, replaced builder lookup with live commander card selection and improved deck-search handoff. Runtime regressions and full real-card build/save/playtest pass. Direct Safari typing reproduction still pending shared foreground. See COMMANDER-USABILITY.md.
+
+## Full card viewer and multi-tag construction — October16,2026
+
+Large read-only card details/zoom/both faces added to finished decks and builder rows.38 independent supported MTG tags, up to3, influence full construction.111 tests/build/lint pass; see CARD-DETAILS-AND-TAGS.md for exact coverage and remaining gaps.
+
+
+## Commander recommendation consistency — October 16, 2026 UTC
+
+Satya-specific energy/copy/ETB ranking now drives both Suggestions and full construction, with inclusion/exclusion review and verified same-commander library references. Added typal/catalog/custom descriptive strategy metadata.118 tests/build/lint pass; isolated API produces100 cards at$67.88 including19/20 first ranked suggestions. Main shared API reload remains pending coordination following automatic approval rejection. Exact comparison, weaknesses, rollout and run instructions: GENERATOR-QUALITY.md.
+
+
+Coordinated activation follow-up: parent explicitly approved the previously blocked API-only reload. New canonical API8555 now serves the current code on3001; canonical Satya and headless UI acceptance pass, user data digests unchanged, unrelated services untouched. See GENERATOR-QUALITY.md.
+
+
+## Cross-commander quality review — October16,2026
+
+Krenko/Muldrotha/Talrand review repaired missing typal/spell-trigger/permanent-replay relevance and false/slow ramp allocation.122 tests/build/lint and canonical UI pass. Final legal100-card buy drafts:$45.04/$96.45/$84.56; exact-binder owned-only and incomplete$5 budgets verified. Satya remains100/$68.67/19-of-20. See CROSS-COMMANDER-REVIEW.md for examples and remaining limits.
+
+
+## Basic mana allocation — October16,2026
+
+Pip-weighted post-construction basic swaps now account for selected spells, commander cost and known nonbasic production, preserving ownership/budget/land count.128 tests/build/lint and canonical UI pass. Muldrotha17B/12G/7U basics;$93.25; Satya11W/12R/13U;$69.56. See BASIC-MANA.md for constraints and exact evidence. This supersedes equal-basic limitations noted in earlier checkpoints.
+
+
+## Resilience review — October16,2026
+
+Headless fault/recovery, stale commander responses, cancellation, multi-tag build/save/reload, finished viewer focus/data preservation and owned-only no-binder boundaries pass.129 tests/build/lint pass. Corrected commander-only secondary mana starvation: asymmetric35/1 becomes28/8; real Muldrotha16B/12G/8U,$93.89. See RESILIENCE-REVIEW.md.
+
+
+## Request cancellation — October16,2026
+
+Commander lookup and all construction fetches accept AbortSignals and abort on cancel/change/unmount. Expected aborts stay quiet; stale guards retained.131 tests/build/lint plus observed browser abort events and end-to-end resilience pass. See REQUEST-CANCELLATION.md and pending NATIVE-FINAL-QA.md. No foreground/account writes/API restart.
+
+
+## Final native QA attempt — October16,2026
+
+Actual iPhone17Pro/iOS26 Expo client: Satya partial search/result/select and strategy panel pass. Native lower-control scrolling/text routing blocked remainder; two input attempts reloaded to empty guest Home. No saves/account writes; stopped bounded attempt and released foreground.49% weekly remains. See NATIVE-FINAL-RESULT.md and screenshot native-final-home-preserved.png in task checkpoint.
+
+
+## Native input diagnostic — October16,2026
+
+Offscreen source/log review found upstream ExpoGo plain-r refresh binding and prior native d interception evidence, but latest r-path attribution remains unconfirmed. Exact-string mobile Chromium keyboard control passes without document reload; headless WebKit runtime unavailable. No app defect reproduced or speculative source change. Exact manual isolation steps saved in NATIVE-INPUT-DIAGNOSTIC.md.49% weekly remains.
+
+
+## Final accessibility/usability audit — October16,2026
+
+131 tests/build/lint pass. Phone/desktop focus trap, Escape/return, labels, alert/status and scoped contrast checks pass. Standalone viewer Scryfall link increased20→44px target height and measured after. Native/VoiceOver limits retained; no speculative changes. See FINAL-ACCESSIBILITY-AUDIT.md.
+
+
+## Commander bracket targets — October16,2026
+
+Required bracket choice, dated official53-name searchable Game Changer reference, actual0/0/3/unlimited selection caps and saved validation implemented. Budget reserve respects forbidden filler.136 tests/build/lint and canonical phone-width/desktop guest build/save/reload pass. Approved API-only restart activated optional metadata schema; user data digests unchanged. Full bracket intent/combo/power certification remains human review. See COMMANDER-BRACKETS.md.
+
+
+## Card sorting and thumbnails — October16,2026
+
+Exact requested type order, finish-aware per-copy USD ascending/descending within groups or whole list, unavailable-last, and accessible lazy thumbnail→high-resolution viewer added to finished/generated reviews.139 tests/build/lint and desktop/phone-width/failure/both-face UI checks pass; user data unchanged. Screenshot Library IDs and deterministic precedence in CARD-SORTING-AND-THUMBNAILS.md. No foreground/services touched.
+
+
+## Artwork previews and safe removal — October16,2026
+
+Actual Mason reference visually inspected. Landscape art-crop/price-badge previews, finished one/all-copy removal with safe current-document undo, and local generated-draft removal with accurate counts/prices and disabled incomplete saving implemented.142 tests/build/lint and canonical desktop/phone-width data-preservation/undo/reload/focus checks pass. See ARTWORK-AND-REMOVAL.md for screenshots, session-undo limit and exact evidence. No real account/deck QA writes or foreground.
+
+
+2026-10-16: Functional primary-role allocation and budget distribution verified across 4 commanders × 4 budgets; 147 tests, build/lint, headless UI pass. Saved data digests unchanged. See GENERATOR-BALANCE.md.
+
+2026-10-16: Corrected transform-only land backs being counted as normal land slots. Front lands and modal playable land backs are handled distinctly. 149 tests/build/lint pass; Satya four-budget recheck has 36 front lands and meets all targets. See GENERATOR-BALANCE.md correction.
+
+2026-10-19: Focused continuation repairs commander→bracket focus/scroll and keyboard result navigation; excludes one/two-damage false wipe slots. 150 tests/build/lint/mobile checks pass, 16 captured builds plus live phone-width/desktop guest save/reload and manual creation pass. Saved-data digests unchanged. Native UI testing remains unavailable. See OCT19-CONTINUATION.md.
+
+2026-10-19 design follow-up: restrained deck/builder layout, shorter human labels, less decoration, compact navigation and card list shown first. Before/after phone/tablet/desktop screenshots and redesigned guest save/reload journeys pass; 150 tests/build/lint pass. Live preview opened in Safari at Mason’s request. See OCT19-CONTINUATION.md.
+
+2026-10-19: Added dated, manually reviewed EDHREC examples for Satya/Krenko/Muldrotha/Talrand, functional theme packages, improved copied-entry/energy/curve ranking and conservative draw/wipe fixes. 16 paired frozen-pool builds plus independent constraints and live guest UI journeys pass; 158 tests/build/typecheck/lint pass. No model training or live inclusion feed. See EDHREC-QUALITY.md.
+
+2026-10-19: Repaired credential-gated existing-deck upgrade flow with local paired upgrade review/apply for guest/account libraries and direct New deck/Upgrade navigation. Addition-budget, ownership, stale-state and count/role/bracket checks enforced. 162 tests/build/lint and phone/desktop guest plus owned-only UI journeys pass. Original Satya review deck untouched. See UPGRADE-FLOW-FIX.md.

@@ -1,0 +1,219 @@
+{
+  "checked": "2026-10-16",
+  "source": "https://magic.wizards.com/en/formats/commander",
+  "update": "https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-october-21-2025",
+  "gameChangers": [
+    {
+      "name": "Drannith Magistrate",
+      "group": "White"
+    },
+    {
+      "name": "Enlightened Tutor",
+      "group": "White"
+    },
+    {
+      "name": "Farewell",
+      "group": "White"
+    },
+    {
+      "name": "Humility",
+      "group": "White"
+    },
+    {
+      "name": "Serra's Sanctum",
+      "group": "White"
+    },
+    {
+      "name": "Smothering Tithe",
+      "group": "White"
+    },
+    {
+      "name": "Teferi's Protection",
+      "group": "White"
+    },
+    {
+      "name": "Consecrated Sphinx",
+      "group": "Blue"
+    },
+    {
+      "name": "Cyclonic Rift",
+      "group": "Blue"
+    },
+    {
+      "name": "Force of Will",
+      "group": "Blue"
+    },
+    {
+      "name": "Fierce Guardianship",
+      "group": "Blue"
+    },
+    {
+      "name": "Gifts Ungiven",
+      "group": "Blue"
+    },
+    {
+      "name": "Intuition",
+      "group": "Blue"
+    },
+    {
+      "name": "Mystical Tutor",
+      "group": "Blue"
+    },
+    {
+      "name": "Narset, Parter of Veils",
+      "group": "Blue"
+    },
+    {
+      "name": "Rhystic Study",
+      "group": "Blue"
+    },
+    {
+      "name": "Thassa's Oracle",
+      "group": "Blue"
+    },
+    {
+      "name": "Ad Nauseam",
+      "group": "Black"
+    },
+    {
+      "name": "Bolas's Citadel",
+      "group": "Black"
+    },
+    {
+      "name": "Braids, Cabal Minion",
+      "group": "Black"
+    },
+    {
+      "name": "Demonic Tutor",
+      "group": "Black"
+    },
+    {
+      "name": "Imperial Seal",
+      "group": "Black"
+    },
+    {
+      "name": "Necropotence",
+      "group": "Black"
+    },
+    {
+      "name": "Opposition Agent",
+      "group": "Black"
+    },
+    {
+      "name": "Orcish Bowmasters",
+      "group": "Black"
+    },
+    {
+      "name": "Tergrid, God of Fright",
+      "group": "Black"
+    },
+    {
+      "name": "Vampiric Tutor",
+      "group": "Black"
+    },
+    {
+      "name": "Gamble",
+      "group": "Red"
+    },
+    {
+      "name": "Jeska's Will",
+      "group": "Red"
+    },
+    {
+      "name": "Underworld Breach",
+      "group": "Red"
+    },
+    {
+      "name": "Crop Rotation",
+      "group": "Green"
+    },
+    {
+      "name": "Biorhythm",
+      "group": "Green"
+    },
+    {
+      "name": "Gaea's Cradle",
+      "group": "Green"
+    },
+    {
+      "name": "Natural Order",
+      "group": "Green"
+    },
+    {
+      "name": "Seedborn Muse",
+      "group": "Green"
+    },
+    {
+      "name": "Survival of the Fittest",
+      "group": "Green"
+    },
+    {
+      "name": "Worldly Tutor",
+      "group": "Green"
+    },
+    {
+      "name": "Aura Shards",
+      "group": "Multicolor"
+    },
+    {
+      "name": "Coalition Victory",
+      "group": "Multicolor"
+    },
+    {
+      "name": "Grand Arbiter Augustin IV",
+      "group": "Multicolor"
+    },
+    {
+      "name": "Notion Thief",
+      "group": "Multicolor"
+    },
+    {
+      "name": "Ancient Tomb",
+      "group": "Colorless"
+    },
+    {
+      "name": "Chrome Mox",
+      "group": "Colorless"
+    },
+    {
+      "name": "Field of the Dead",
+      "group": "Colorless"
+    },
+    {
+      "name": "Glacial Chasm",
+      "group": "Colorless"
+    },
+    {
+      "name": "Grim Monolith",
+      "group": "Colorless"
+    },
+    {
+      "name": "Lion's Eye Diamond",
+      "group": "Colorless"
+    },
+    {
+      "name": "Mana Vault",
+      "group": "Colorless"
+    },
+    {
+      "name": "Mishra's Workshop",
+      "group": "Colorless"
+    },
+    {
+      "name": "Mox Diamond",
+      "group": "Colorless"
+    },
+    {
+      "name": "Panoptic Mirror",
+      "group": "Colorless"
+    },
+    {
+      "name": "The One Ring",
+      "group": "Colorless"
+    },
+    {
+      "name": "The Tabernacle at Pendrell Vale",
+      "group": "Colorless"
+    }
+  ]
+}

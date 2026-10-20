@@ -1,0 +1,335 @@
+{
+  "version": 1,
+  "evaluationPolicy": "Development parser/function tests use canonical fixtures. Held-out prompts are reserved and unscored; no fresh model output, no fine-tuning, no strategic-quality success claim.",
+  "cases": [
+    {
+      "id": "rock-combined",
+      "split": "development",
+      "prompt": "more two mana rocks under $5, no tapped rocks",
+      "expected": {
+        "mechanics": ["mana-rock"],
+        "manaValue": 2,
+        "relation": "exact",
+        "purchaseBudget": 4.99,
+        "noTapped": true
+      },
+      "positiveCards": ["Boros Signet", "Mind Stone"],
+      "negativeCards": ["Coldsteel Heart", "Llanowar Elves", "Prophetic Prism"],
+      "clarification": false
+    },
+    {
+      "id": "negative-rock",
+      "split": "development",
+      "prompt": "ramp but no rocks",
+      "expected": {
+        "mechanics": ["ramp"],
+        "excludedMechanics": ["mana-rock"]
+      },
+      "positiveCards": ["Cultivate"],
+      "negativeCards": ["Sol Ring"],
+      "clarification": false
+    },
+    {
+      "id": "land-ramp",
+      "split": "development",
+      "prompt": "No more rocks; improve land ramp instead",
+      "expected": {
+        "mechanics": ["land-ramp"],
+        "types": []
+      },
+      "positiveCards": ["Cultivate"],
+      "negativeCards": ["Arcane Signet", "Sylvan Scrying"],
+      "clarification": false
+    },
+    {
+      "id": "union",
+      "split": "development",
+      "prompt": "(rocks or dorks) under three mana but no rituals",
+      "expected": {
+        "manaValue": 2,
+        "relation": "max"
+      },
+      "positiveCards": ["Boros Signet", "Llanowar Elves"],
+      "negativeCards": ["Dark Ritual"],
+      "clarification": false
+    },
+    {
+      "id": "exact-five",
+      "split": "development",
+      "prompt": "more five mana creatures",
+      "expected": {
+        "manaValue": 5,
+        "relation": "exact",
+        "types": ["Creature"]
+      },
+      "positiveCards": [],
+      "negativeCards": [],
+      "clarification": false
+    },
+    {
+      "id": "explain",
+      "split": "development",
+      "prompt": "What are mana rocks?",
+      "expected": {
+        "mode": "explain"
+      },
+      "positiveCards": [],
+      "negativeCards": [],
+      "clarification": false
+    },
+    {
+      "id": "ambiguous-counters",
+      "split": "development",
+      "prompt": "add more counters",
+      "expected": {},
+      "positiveCards": [],
+      "negativeCards": [],
+      "clarification": true
+    },
+    {
+      "id": "ambiguous-price",
+      "split": "development",
+      "prompt": "Keep Sol Ring, replace other expensive rocks",
+      "expected": {},
+      "positiveCards": [],
+      "negativeCards": [],
+      "clarification": true
+    },
+    {
+      "id": "archetype",
+      "split": "development",
+      "prompt": "Explain The Rock deck",
+      "expected": {},
+      "positiveCards": [],
+      "negativeCards": [],
+      "clarification": true
+    },
+    {
+      "id": "cantrip",
+      "split": "development",
+      "prompt": "add cantrips",
+      "expected": {
+        "mechanics": ["cantrip"]
+      },
+      "positiveCards": ["Ponder"],
+      "negativeCards": [],
+      "clarification": false
+    },
+    {
+      "id": "loot",
+      "split": "development",
+      "prompt": "more looting",
+      "expected": {
+        "mechanics": ["loot"]
+      },
+      "positiveCards": ["Faithless Looting"],
+      "negativeCards": ["Thrill of Possibility"],
+      "clarification": false
+    },
+    {
+      "id": "rummage",
+      "split": "development",
+      "prompt": "more rummaging",
+      "expected": {
+        "mechanics": ["rummage"]
+      },
+      "positiveCards": ["Thrill of Possibility"],
+      "negativeCards": ["Faithless Looting"],
+      "clarification": false
+    },
+    {
+      "id": "blink",
+      "split": "development",
+      "prompt": "more blink",
+      "expected": {
+        "mechanics": ["blink"]
+      },
+      "positiveCards": ["Ephemerate"],
+      "negativeCards": ["Unsummon"],
+      "clarification": false
+    },
+    {
+      "id": "bounce",
+      "split": "development",
+      "prompt": "more bounce",
+      "expected": {
+        "mechanics": ["bounce"]
+      },
+      "positiveCards": ["Unsummon"],
+      "negativeCards": ["Ephemerate"],
+      "clarification": false
+    },
+    {
+      "id": "reanimate",
+      "split": "development",
+      "prompt": "more reanimation",
+      "expected": {
+        "mechanics": ["reanimation"]
+      },
+      "positiveCards": ["Animate Dead"],
+      "negativeCards": ["Eternal Witness"],
+      "clarification": false
+    },
+    {
+      "id": "recursion",
+      "split": "development",
+      "prompt": "more recursion",
+      "expected": {
+        "mechanics": ["recursion"]
+      },
+      "positiveCards": ["Eternal Witness"],
+      "negativeCards": [],
+      "clarification": false
+    },
+    {
+      "id": "outlet",
+      "split": "development",
+      "prompt": "more sacrifice outlets",
+      "expected": {
+        "mechanics": ["sacrifice-outlet"]
+      },
+      "positiveCards": ["Goblin Bombardment", "Altar of Dementia"],
+      "negativeCards": ["Sakura-Tribe Elder"],
+      "clarification": false
+    },
+    {
+      "id": "wipe",
+      "split": "development",
+      "prompt": "more board wipes",
+      "expected": {
+        "mechanics": ["board-wipe"]
+      },
+      "positiveCards": ["Day of Judgment", "Cyclonic Rift"],
+      "negativeCards": ["Unsummon"],
+      "clarification": false
+    },
+    {
+      "id": "protection",
+      "split": "development",
+      "prompt": "more protection",
+      "expected": {
+        "mechanics": ["protection"]
+      },
+      "positiveCards": ["Heroic Intervention"],
+      "negativeCards": [],
+      "clarification": false
+    },
+    {
+      "id": "treasure",
+      "split": "development",
+      "prompt": "more treasures",
+      "expected": {
+        "mechanics": ["treasure"]
+      },
+      "positiveCards": [],
+      "negativeCards": [],
+      "clarification": false
+    },
+    {
+      "id": "held-rock-synonym",
+      "split": "held-out",
+      "prompt": "Add reusable artifact acceleration costing at most two, excluding tapped sources",
+      "rubric": "Manually score alias coverage, exact <=2 interpretation, tapped exclusion; no model evaluation yet.",
+      "status": "reserved-unscored",
+      "holdoutScope": "Exact live prompt remains unexecuted/unscored; related terminology and some combat/protection mechanics have been used in development. Not a blind conceptual holdout."
+    },
+    {
+      "id": "held-mixed",
+      "split": "held-out",
+      "prompt": "I want rocks that also draw cards, not draw-only artifacts",
+      "rubric": "Require both mana production and draw; retain Mind Stone; reject Prophetic Prism as acceleration.",
+      "status": "reserved-unscored",
+      "holdoutScope": "Exact live prompt remains unexecuted/unscored; related terminology and some combat/protection mechanics have been used in development. Not a blind conceptual holdout."
+    },
+    {
+      "id": "held-clones",
+      "split": "development-after-live",
+      "prompt": "Which clones preserve useful ETBs for Satya?",
+      "rubric": "Score copy exceptions/legend rule; Spark Double exception is copiable; Phantasmal Image targeting sacrifice; Auton Soldier entering attacking does not trigger myriad.",
+      "status": "related-live-variant-evaluated-and-used-in-development",
+      "holdoutScope": "A live variant was evaluated, exposed defects and was used for code corrections; this concept is no longer a held-out quality claim."
+    },
+    {
+      "id": "held-combat",
+      "split": "development-after-live",
+      "prompt": "Find extra-combat creatures for Satya",
+      "rubric": "Fresh Port Razer token enters attacking and may chain with evasion without global haste; distinguish Combat Celebrant declared-attack/exert requirements and untap timing.",
+      "status": "related-live-variant-evaluated-and-used-in-development",
+      "holdoutScope": "A related actual live variant has now been evaluated; no blind-held-out quality claim."
+    },
+    {
+      "id": "held-draw",
+      "split": "development-after-live",
+      "prompt": "Repeatable creature draw for Satya",
+      "rubric": "Enduring Curiosity triggers per creature connection, copies multiply triggers; only nontoken original returns as enchantment.",
+      "status": "related-live-variant-evaluated-and-used-in-development",
+      "holdoutScope": "A related actual live variant has now been evaluated; no blind-held-out quality claim."
+    },
+    {
+      "id": "held-finisher",
+      "split": "development-after-live",
+      "prompt": "Credible six to eight mana Satya finishers",
+      "rubric": "Immediate impact and opportunity cost; Terror of Mount Velus ETB double strike applies before damage; Molten Primordial steals after attackers declared.",
+      "status": "related-live-variant-evaluated-and-used-in-development",
+      "holdoutScope": "A related actual live variant has now been evaluated; no blind-held-out quality claim."
+    },
+    {
+      "id": "held-evasion",
+      "split": "held-out",
+      "prompt": "Reliable evasion for combat-damage extra combats",
+      "rubric": "Single Rogue\u2019s Passage activation does not cover future tokens; Bedlam applies to new tokens but exposes controller; Cloak shroud prevents Satya targeting.",
+      "status": "reserved-unscored",
+      "holdoutScope": "Exact live prompt remains unexecuted/unscored; related terminology and some combat/protection mechanics have been used in development. Not a blind conceptual holdout."
+    },
+    {
+      "id": "held-protect",
+      "split": "development-after-live",
+      "prompt": "Protect attacking Satya in bracket 4 within budget",
+      "rubric": "Evaluate total setup/equip cost, tempo, downside and synergy; Dolmen Gate preferred if budget allows; no automatic edits.",
+      "status": "related-live-variant-evaluated-and-used-in-development",
+      "holdoutScope": "A related actual live variant has now been evaluated; no blind-held-out quality claim."
+    }
+  ],
+  "userFeedback": {
+    "scope": "This user's bracket-4 Satya target; preference evidence, not universal bracket legality",
+    "source": "User feedback relayed by parent, 2026-10-20",
+    "ratings": [
+      {
+        "card": "Inspiring Overseer",
+        "rating": "weak low-impact filler for this target"
+      },
+      {
+        "card": "Bedlam",
+        "rating": "interesting synergy, downgrade default recommendation due symmetrical risk"
+      },
+      {
+        "card": "Whispersilk Cloak",
+        "rating": "acceptable but slow; account for cast/equip and shroud"
+      },
+      {
+        "card": "Dolmen Gate",
+        "rating": "preferred if budget permits"
+      }
+    ],
+    "noAutomaticDeckEdits": true
+  },
+  "guideEvidence": {
+    "source": "Parent-relayed article research; no videos watched",
+    "principles": [
+      "Evaluate mana curve separately from turn mapping and planned play sequence.",
+      "Assign primary functional roles despite overlapping abilities; do not count one multifunction card as independently satisfying every need.",
+      "Bracket 4 prioritizes fast consistent lethal plans and efficient disruption; avoid importing generic casual ramp costs unchanged."
+    ],
+    "references": [
+      "https://edhrec.com/articles/how-to-build-a-commander-deck",
+      "https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-october-21-2025"
+    ],
+    "status": "Rubric evidence captured; no strategic model outputs scored and no card edits."
+  },
+  "liveEvaluation": {
+    "paidAttempts": 8,
+    "result": "Hard rock controls passed; strategic quality had material failures and one incomplete response.",
+    "unexecutedOriginalCase": "standalone evasion replaced by clone retest",
+    "evidence": "docs/AI-LIVE-EVALUATION.md"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "status": "COMPLETED \u2014 eight paid attempts exhausted; no ninth retest",
+  "maximumTotalRequests": 8,
+  "countsAllAttemptsIncludingErrorsOrIncomplete": true,
+  "maximumConservativeReservationUSD": 1.6576,
+  "perRequestReservationUSDAtCurrentGuard": 0.2072,
+  "basis": "Existing guard reserves full 400000 input + 1800 output tokens with 2x pricing margin; upper reservation, not expected spend or a current vendor quote. Revalidate policy/pricing/available ledger balance before any authorized run; current policy expires 2026-11-02.",
+  "cases": [
+    "Development control: exact two-mana rocks under $5, no tapped sources",
+    "Development control: follow-up excludes a role then explicitly allows it",
+    "Reserved live Satya clones",
+    "Reserved live Satya extra combats",
+    "Reserved live Satya repeatable draw",
+    "Reserved live Satya six-to-eight-mana finishers",
+    "Reserved live Satya evasion",
+    "Reserved live Satya commander protection"
+  ],
+  "holdoutDisclosure": "Exact strategic live prompts remain unexecuted. Reference answers, related card mechanics and preferences were exposed during development, so this is not a blind conceptual holdout. Create an additional unseen set later for stronger generalization claims.",
+  "executionRules": [
+    "Require separate explicit paid-call authorization; this file authorizes nothing.",
+    "Use an isolated copy of the user's intended deck and preserve saved deck/account data.",
+    "Keep existing provider, model, budget guard, rate caps and output limits; no retries outside the eight-attempt cap.",
+    "Before starting and after each attempt, inspect safe ledger metadata. Stop on pending/blocked/unknown charge, unavailable pricing, insufficient reservation, or material source/constraint failure.",
+    "Never reset or top up the ledger, change credentials, bypass daily/rate caps or auto-apply proposals.",
+    "Record exact queries, canonical source IDs, offered pairs, request constraints, response, usage and review result without secrets.",
+    "Score retrieval recall against the reference set independently of returned-pair constraint adherence; score strategic quality separately by human-reviewed rubric.",
+    "Failure or no eligible candidates is a result to report, not permission to broaden constraints or increase attempts."
+  ],
+  "metrics": [
+    "Reference-card retrieval recall with bounded-query coverage stated",
+    "Canonical mana/type/function/budget/ownership adherence",
+    "Supported vs invented IDs and rules claims",
+    "Attack/ETB/combat-damage sequencing correctness",
+    "Immediate impact, total deployment cost, downside and coherent plan",
+    "Explicit uncertainty and user preference adherence"
+  ],
+  "changesToGuard": "None",
+  "executionResult": {
+    "paidAttempts": 8,
+    "httpResponses": 10,
+    "freeMisroutedResponses": 2,
+    "conservativeAdditionalUSD": 0.1198435,
+    "usageDerivedEstimateBeforeCachedDiscountUSD": 0.05992175,
+    "finalConservativeLedgerUSD": 0.2479055,
+    "pending": 0,
+    "blocked": false,
+    "unexecutedOriginalCase": "standalone evasion replaced by clone retest",
+    "finalOfflineSafeguardsHavePaidRetest": false
+  }
+}

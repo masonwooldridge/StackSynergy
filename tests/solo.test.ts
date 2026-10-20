@@ -174,7 +174,7 @@ describe("solo playtest state", () => {
   it("lands bypass the stack, while spells cast and resolve without changing the source deck", () => {
     const d = deck();
     let s = play(startSolo(d));
-    const id = s.pieces.find((p) => p.zone === "hand")!.id;
+    const id = s.pieces.find((p) => p.zone === "hand" && p.card.type_line?.includes("Land"))!.id;
     expect(() => soloAction(s, { type: "cast", id })).toThrow(/lands/i);
     s.pieces = s.pieces.map((p) =>
       p.id === id

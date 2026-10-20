@@ -151,6 +151,7 @@ export function soloAction(previous: SoloState, action: SoloAction): SoloState {
     }
     case "keep": {
       if (s.stage !== "opening") throw Error("Opening hand already kept.");
+      if (!s.pieces.some((piece) => piece.zone === "hand")) throw Error("Add mainboard cards before keeping an opening hand.");
       const ids = new Set(action.bottom);
       if (
         ids.size !== action.bottom.length ||
@@ -292,4 +293,97 @@ export function soloAction(previous: SoloState, action: SoloAction): SoloState {
   }
   s.log = [message, ...s.log].slice(0, 150);
   return s;
+}
+
+/** Treat persisted browser data as untrusted; reject malformed sessions before rendering. */
+export function isSoloState(value: unknown): value is SoloState {
+  if (!value || typeof value !== "object") return false;
+  const s = value as Record<string, unknown>;
+  const integer = (v: unknown) =>
+    typeof v === "number" && Number.isSafeInteger(v) && Math.abs(v) <= 1000000;
+  const record = (v: unknown) =>
+    !!v &&
+    typeof v === "object" &&
+    !Array.isArray(v) &&
+    Object.values(v).every((n) => integer(n) && (n as number) >= 0);
+  if (
+    !["life", "poison", "damage", "turn", "phase", "mulls"].every((key) =>
+      integer(s[key]),
+    ) ||
+    (s.phase as number) < 0 ||
+    (s.phase as number) >= phases.length ||
+    (s.turn as number) < 1 ||
+    (s.mulls as number) < 0 ||
+    (s.mulls as number) > (s.freeMulligan ? 8 : 7) ||
+    typeof s.freeMulligan !== "boolean" ||
+    !["opening", "playing"].includes(String(s.stage)) ||
+    !record(s.mana) ||
+    !record(s.casts) ||
+    !Array.isArray(s.log) ||
+    s.log.length > 1000 ||
+    !s.log.every((line) => typeof line === "string" && line.length <= 10000) ||
+    !Array.isArray(s.pieces) ||
+    s.pieces.length > 10000
+  )
+    return false;
+  if (
+    !["W", "U", "B", "R", "G", "C"].every((color) =>
+      integer((s.mana as Record<string, unknown>)[color]),
+    )
+  )
+    return false;
+  const ids = new Set<string>();
+  return s.pieces.every((piece) => {
+    if (!piece || typeof piece !== "object") return false;
+    const p = piece as Record<string, unknown>;
+    if (
+      typeof p.id !== "string" ||
+      ids.has(p.id) ||
+      !soloZones.includes(p.zone as SoloZone) ||
+      typeof p.tapped !== "boolean" ||
+      typeof p.flipped !== "boolean" ||
+      !integer(p.counters) ||
+      (p.token !== undefined && typeof p.token !== "boolean") ||
+      !p.card ||
+      typeof p.card !== "object"
+    )
+      return false;
+    const c = p.card as Record<string, unknown>;
+    if (
+      typeof c.id !== "string" ||
+      typeof c.name !== "string" ||
+      c.name.length > 300
+    )
+      return false;
+    for (const key of [
+      "type_line",
+      "oracle_text",
+      "mana_cost",
+      "imageUrl",
+      "power",
+      "toughness",
+    ]) {
+      if (c[key] !== undefined && typeof c[key] !== "string") return false;
+    }
+    const imageValid = (v: unknown) =>
+      v === undefined ||
+      (!!v &&
+        typeof v === "object" &&
+        typeof (v as Record<string, unknown>).normal === "string");
+    if (!imageValid(c.image_uris)) return false;
+    if (
+      c.card_faces !== undefined &&
+      (!Array.isArray(c.card_faces) ||
+        !c.card_faces.every(
+          (face) =>
+            face &&
+            typeof face === "object" &&
+            typeof face.name === "string" &&
+            imageValid(face.image_uris),
+        ))
+    )
+      return false;
+    ids.add(p.id);
+    return true;
+  });
 }

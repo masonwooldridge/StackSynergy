@@ -1,0 +1,17 @@
+# Playtest reference redesign — 2026-10-20
+
+Both supplied PNGs were materialized on this Mac, retaining Library identity, and their actual pixels inspected: libfile_720ab58c2c288191b5858b08abd2cf8b (opening hand) and libfile_1fd2034ed7dc8191aa6d6225a7d58714 (playing table). Local copies: task workspace checkpoint/playtest-reference/reference-1.png and reference-2.png.
+
+The new desktop view closely follows their structure: full-width dark grid playmat, central opening fan with Keep/Mulligan/Options, bottom-library selection and Exile zone preview, bottom hand and five zone piles with counts/previews, and a compact life/mana/draw/turn/history/menu bar. StackSynergy uses its own warm accent and card back. The central bottom target selects required London-mulligan cards by tap or drag; actual bottoming still happens on Keep. Exile opens the real zone browser; it does not bypass opening-stage restrictions.
+
+On mobile the same structure becomes a large playmat, compact zone strip, swipeable full-size hand, bottom action strip and reachable action sheet. Opening cards are swipeable rather than tiny desktop cards. Close returns to the deck; choosing another deck remains available there. No unsupported interaction simulator, online sharing or opponent automation has been invented.
+
+Mechanics retain the existing shared/solo.ts reducer and compact persisted history: mulligan/keep, draw, cast/resolve, commander tax, tap/untap, counters, zone moves, library search/shuffle, tokens, mana, life/poison/damage, turn/phase, dice/coin, undo/redo, reset/cancel and reload recovery. Choosing a card from a zone now closes the zone browser to expose its actions; this fixes an overlap found during actual UI testing.
+
+Validation: build/typecheck passes, lint clean,382tests across37files pass. Actual isolated browser journeys at1440x900 and390x844 pass: two mulligans plus paid bottom/keep6; draw; library search; hand/land/tap/counter/exile; undo/redo; commander cast/resolve; token; mana; D6/coin; life; next turn; reset/cancel/undo; reload; Close and browser Back restore. Fixture deck JSON unchanged; no API mutation requests or page errors. Additional320x640 and820x1180 layouts pass no page overflow and scroll/focus access to hand cards. Final source-only token-size CSS correction equalizes token/card heights; no reducer/state change.
+
+Limits: browser rendering and mouse/touch-sized controls verified; no physical iPhone or native Expo runtime run in this pass. Desktop drag/drop remains available, but browser journeys used explicit card controls and tap selection. Costs, triggers, combat and opponent decisions remain manual. Public card art may load after the interface; screenshots wait for the hand images. Isolated fixture hands differ between before/after because the real shuffle is random.
+
+Before screenshots use the preserved original Tabletop component served only inside an isolated browser route; no working source was reverted. Current and before captures, API mutation guard, state receipts and test logs are in checkpoint/playtest-redesign. Source originals: Tabletop.before.tsx/tabletop.before.css. Recoverable archive: checkpoint/card-chasm-playtest-reference-redesign.tar.gz.
+
+No shared saved-deck/collection changes, paid AI, publishing, Safari/StatSplice changes or shared-port/process changes. Baylen, Search, scanner and assistant source untouched by this pass.

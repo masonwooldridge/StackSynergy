@@ -22,6 +22,8 @@ export interface Player {
   name: string;
   ready: boolean;
   deckName: string;
+  deckValidation?: import("./deckValidation.ts").DeckValidation;
+  acceptsCasual?: boolean;
   pieces: Piece[];
   life: number;
   tax: number;
@@ -35,6 +37,7 @@ export interface Room {
   public: boolean;
   format: string;
   started: boolean;
+  finished?: boolean;
   players: Player[];
   revision: number;
   turn: number;
@@ -67,17 +70,33 @@ export function loadDeck(d: Document): Piece[] {
       ),
   );
 }
+// Library identities/order are private even to their owner in ordinary room views.
+// A hand identity is public only after an intentional reveal.
+export function isPublicPiece(c: Piece) {
+  return c.zone !== "library" && (c.zone !== "hand" || c.revealed);
+}
 export function viewRoom(r: Room, viewer: string) {
+  if (!r.players.some((p) => p.id === viewer)) throw Error("Not a room member");
   return {
     ...r,
     commands: undefined,
+    // Scrub legacy counter logs written before visibility was enforced.
+    log: r.log.map((line) =>
+      line.replace(/updated counters on .*/, "updated counters on a card"),
+    ),
     players: r.players.map((p) => ({
       ...p,
+      deckValidation:
+        p.id === viewer
+          ? p.deckValidation
+          : p.deckValidation && {
+              ...p.deckValidation,
+              errors: [],
+              warnings: [],
+            },
       online: Date.now() - p.lastSeen < 15000,
       pieces: p.pieces.filter(
-        (c) =>
-          c.zone !== "library" &&
-          (c.zone !== "hand" || p.id === viewer || c.revealed),
+        (c) => isPublicPiece(c) || (c.zone === "hand" && p.id === viewer),
       ),
       libraryCount: p.pieces.filter((c) => c.zone === "library").length,
       handCount: p.pieces.filter((c) => c.zone === "hand").length,
@@ -99,9 +118,12 @@ export function act(
     text?: string;
   },
 ): Room {
+  if (!r.players.some((p) => p.id === actor)) throw Error("Not a room member");
   if (r.commands.includes(input.id)) return r;
   if (input.revision !== r.revision)
     throw Error("Stale game state. Refresh and try again.");
+  if (r.finished && input.action !== "chat")
+    throw Error("This game has finished.");
   const next = structuredClone(r);
   const p = next.players.find((p) => p.id === actor);
   if (!p) throw Error("Not a room member");
@@ -110,6 +132,13 @@ export function act(
     if (actor !== next.host) throw Error("Only the host can start");
     if (next.players.length < 2 || !next.players.every((p) => p.ready))
       throw Error("At least two ready players required");
+    if (
+      next.players.some((p) => p.deckValidation?.status !== "checked") &&
+      !next.players.every((p) => p.acceptsCasual)
+    )
+      throw Error(
+        "Every player must agree to casual play when a deck is invalid or unverified.",
+      );
     next.started = true;
     log("started the game");
   } else if (input.action === "chat") {
@@ -122,9 +151,15 @@ export function act(
       throw Error("Cannot remove this player");
     next.players = next.players.filter((p) => p.id !== input.target);
     log("removed a player");
+  } else if (input.action === "casual") {
+    if (next.started) throw Error("Game already started");
+    p.acceptsCasual = !p.acceptsCasual;
+    p.ready = false;
   } else if (input.action === "ready") {
     if (next.started || !p.pieces.length)
       throw Error("Select a deck before readying");
+    if (p.deckValidation?.status !== "checked" && !p.acceptsCasual)
+      throw Error("Validate your deck or explicitly agree to casual play.");
     p.ready = !p.ready;
   } else {
     if (!next.started) throw Error("Game has not started");
@@ -222,6 +257,8 @@ export function act(
         c.zone = input.zone!;
         c.revealed = !toPrivate;
         c.tapped = false;
+        c.counters = 0;
+        c.flipped = false;
         if (input.zone === "library") {
           p.pieces = p.pieces.filter((x) => x.id !== c.id);
           c.id = randomUUID();
@@ -246,7 +283,9 @@ export function act(
         if (!Number.isInteger(input.value) || Math.abs(input.value!) > 999)
           throw Error("Invalid counters");
         c.counters = input.value!;
-        log(`updated counters on ${c.card.name}`);
+        log(
+          `updated counters on ${isPublicPiece(c) ? c.card.name : "a private card"}`,
+        );
       } else throw Error("Unsupported action");
     }
   }

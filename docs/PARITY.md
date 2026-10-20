@@ -44,3 +44,9 @@ Following official [deck workflow](https://manabox.app/guides/decks/getting-star
 - Missing-owned compares playable boards across printings, excludes maybeboard/wishlists, and exports a shopping list. No cross-deck reservations claimed.
 
 This is functional workflow alignment, not full ManaBox feature parity. Offline catalog, collector completion, trade tools, multi-market/currency pricing, multilingual OCR, news and comprehensive browsable rules remain pending. Native acceptance and multiplayer/AI remaining work is tracked in PROGRESS.md and VERIFICATION.md.
+
+## Reliability evidence update — October 13, 2026
+
+This supersedes earlier implications of full validation: room loading can resolve server provider facts; incomplete/invalid decks require unanimous explicit casual agreement. Complete special construction/companion support is pending. AI proposals now have server-bound exact quantity changes and atomic single application, with total-budget and owned-quantity checks; no live paid-model acceptance has occurred.
+
+Card details and set-based imports aggregate printing pages; searchable printing details limit finishes and language to the selected printing. Global browsing preserves an empty destination. Major screens/documents now have URLs and browser Back/Forward. Scanner worker and duplicate/session behavior improved, but full batch confirmation and representative accuracy measurements remain pending. Online play gained monotonic response handling and leave/host succession; full gameplay/lifecycle acceptance remains pending. Backup restore, offline catalog/mobile cache and the broader parity backlog remain open. See VERIFICATION.md for evidence rather than treating this feature list as acceptance.

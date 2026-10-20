@@ -17,7 +17,7 @@ for (const name of names) {
     "https://api.scryfall.com/cards/named?exact=" + encodeURIComponent(name),
     {
       headers: {
-        "User-Agent": "CardChasm/0.1 scanner evaluation",
+        "User-Agent": "StackSynergy/0.1 scanner evaluation",
         Accept: "application/json",
       },
     },
@@ -29,7 +29,7 @@ for (const name of names) {
     await (
       await fetch(url, {
         headers: {
-          "User-Agent": "CardChasm/0.1 scanner evaluation",
+          "User-Agent": "StackSynergy/0.1 scanner evaluation",
           Accept: "image/*",
         },
       })

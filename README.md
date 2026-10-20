@@ -1,4 +1,8 @@
-# CardChasm
+# StackSynergy
+
+<img src="public/brand/stacksynergy-icon-192.png" width="80" alt="StackSynergy 1A Classic icon" />
+
+Repository: [masonwooldridge/StackSynergy](https://github.com/masonwooldridge/StackSynergy).
 
 React + TypeScript MTG companion, with an Express/SQLite local backend. This is an active implementation, **not full ManaBox parity or final acceptance**. See [progress and exact continuation](docs/PROGRESS.md), [source-linked parity](docs/PARITY.md), and [verification](docs/VERIFICATION.md).
 
@@ -41,7 +45,7 @@ Separate accounts can host/join by code, load decks, ready and start. Commander 
 
 See [deployment guide](docs/DEPLOYMENT.md). Nothing has been published. Current defaults bind to loopback; do not expose an unfinished development server directly to the internet.
 
-Card names, text and imagery are provided by Scryfall and belong to Wizards of the Coast. CardChasm is unofficial fan content. Available prices are estimates, not an offer to buy or sell.
+Card names, text and imagery are provided by Scryfall and belong to Wizards of the Coast. StackSynergy is unofficial fan content. Available prices are estimates, not an offer to buy or sell.
 
 ## Expo mobile app
 

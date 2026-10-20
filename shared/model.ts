@@ -1,11 +1,20 @@
+import {bracketCheck} from './commanderBrackets';
+import {isMainDeckCard} from "./deckEligibility";
 export interface Card {
+  edhrec_rank?: number;
   id: string;
+  layout?: string;
+  games?: string[];
   oracle_id?: string;
   name: string;
   imageUrl?: string;
   type_line?: string;
   oracle_text?: string;
   cmc?: number;
+  power?: string;
+  toughness?: string;
+  loyalty?: string;
+  produced_mana?: string[];
   mana_cost?: string;
   color_identity?: string[];
   legalities?: Record<string, string>;
@@ -13,13 +22,19 @@ export interface Card {
   set_name?: string;
   collector_number?: string;
   lang?: string;
+  finishes?: string[];
   prices?: Record<string, string | null>;
   scryfall_uri?: string;
-  image_uris?: { normal: string };
+  image_uris?: { normal: string; small?: string; art_crop?: string; large?: string; png?: string };
   card_faces?: {
     name: string;
-    image_uris?: { normal: string };
+    type_line?: string;
+    image_uris?: { normal: string; small?: string; art_crop?: string; large?: string; png?: string };
     oracle_text?: string;
+    mana_cost?: string;
+    power?: string;
+    toughness?: string;
+    loyalty?: string;
   }[];
 }
 export type Board = "mainboard" | "sideboard" | "maybeboard" | "commander";
@@ -44,6 +59,8 @@ export interface Document {
   entries: Entry[];
   revision: number;
   deleted?: boolean;
+  commanderBracket?: 1|2|3|4|5;
+  strategy?: {tags:string[];creatureTypes:string[];labels:string[]};
 }
 export const formats = [
   "commander",
@@ -58,6 +75,17 @@ export const image = (c: Card, face = 0) =>
   c.card_faces?.[face]?.image_uris?.normal ||
   c.image_uris?.normal ||
   c.imageUrl;
+const frontType = (card: Card) =>
+  card.card_faces?.[0]?.type_line || (card.type_line || "").split(" // ")[0];
+const partnerVariant = (text: string) =>
+  text
+    .match(
+      /^Partner\s*[—–-]\s*(Character select|Father & son|Friends forever|Survivors)\b/im,
+    )?.[1]
+    .toLowerCase();
+const doctor = (card: Card) =>
+  /Legendary.*Creature/.test(frontType(card)) &&
+  frontType(card).split(/[—–]/)[1]?.trim() === "Time Lord Doctor";
 export function validateDeck(d: Document) {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -66,6 +94,7 @@ export function validateDeck(d: Document) {
     (e) => e.board === "mainboard" || e.board === "commander",
   );
   const count = main.reduce((n, e) => n + e.qty, 0);
+  for(const entry of active)if(!isMainDeckCard(entry.card))errors.push(`${entry.card.name} is an auxiliary/non-paper card and cannot be in this deck.`);
   const commanders = active.filter((e) => e.board === "commander");
   if (d.format === "commander") {
     if (count !== 100)
@@ -81,9 +110,13 @@ export function validateDeck(d: Document) {
       errors.push("Commander has no sideboard.");
     for (const e of commanders)
       if (!(
-        /Legendary.*Creature/.test(e.card.type_line || "") ||
+        /Legendary.*Creature/.test(frontType(e.card)) ||
         /can be your commander/.test(e.card.oracle_text || "") ||
-        /Legendary.*Background/.test(e.card.type_line || "")
+        (/Legendary.*(?:Vehicle|Spacecraft)/.test(frontType(e.card)) &&
+          e.card.power !== undefined &&
+          e.card.toughness !== undefined) ||
+        (commanders.length === 2 &&
+          /Legendary.*Enchantment.*Background/.test(e.card.type_line || ""))
       ))
         errors.push(`${e.card.name}: commander eligibility not established.`);
     if (commanders.length === 2) {
@@ -91,7 +124,8 @@ export function validateDeck(d: Document) {
       const at = a.oracle_text || "",
         bt = b.oracle_text || "";
       const pair =
-        (/^Partner$/m.test(at) && /^Partner$/m.test(bt)) ||
+        (/^Partner(?:\s*\(|$)/m.test(at) && /^Partner(?:\s*\(|$)/m.test(bt)) ||
+        (!!partnerVariant(at) && partnerVariant(at) === partnerVariant(bt)) ||
         (at.includes(`Partner with ${b.name}`) &&
           bt.includes(`Partner with ${a.name}`)) ||
         (at.includes("Friends forever") && bt.includes("Friends forever")) ||
@@ -99,10 +133,8 @@ export function validateDeck(d: Document) {
           b.type_line?.includes("Background")) ||
         (bt.includes("Choose a Background") &&
           a.type_line?.includes("Background")) ||
-        (at.includes("Doctor's companion") &&
-          /Time Lord Doctor/.test(b.type_line || "")) ||
-        (bt.includes("Doctor's companion") &&
-          /Time Lord Doctor/.test(a.type_line || ""));
+        (/Doctor['’]s companion/.test(at) && doctor(b)) ||
+        (/Doctor['’]s companion/.test(bt) && doctor(a));
       if (!pair)
         errors.push(
           "These commanders do not have a supported pairing ability.",
@@ -130,7 +162,19 @@ export function validateDeck(d: Document) {
   for (const e of active) {
     const k = e.card.oracle_id || e.card.name;
     groups.set(k, [...(groups.get(k) || []), e]);
-    if (!e.card.type_line || !e.card.legalities)
+    if (
+      /companion|rulebreaker|choose a color|choose a colour|deck can contain/i.test(
+        e.card.oracle_text || "",
+      )
+    )
+      warnings.push(
+        `${e.card.name}: special construction conditions require manual review; validation incomplete.`,
+      );
+    if (d.format === "commander" && e.card.color_identity === undefined)
+      warnings.push(
+        `${e.card.name}: color identity missing; validation incomplete.`,
+      );
+    if (!e.card.type_line || !e.card.legalities?.[d.format])
       warnings.push(
         `${e.card.name}: missing authoritative metadata; validation incomplete.`,
       );
@@ -164,7 +208,13 @@ export function validateDeck(d: Document) {
         `${c.name}: exceeds ${limit} copies across printings and boards.`,
       );
   }
+  if(d.format==="commander"&&d.commanderBracket)errors.push(...bracketCheck(d).errors);
   return {
+    status: warnings.length
+      ? "incomplete"
+      : errors.length
+        ? "invalid"
+        : "checked",
     errors: [...new Set(errors)],
     warnings: [...new Set(warnings)],
     count,

@@ -1,0 +1,23 @@
+# Full card details and supported strategy tags
+
+## Card viewing delivered
+
+Finished deck card/commander clicks and builder review rows open a read-only large card view. Uses supplied Scryfall large/png image fields with normal image fallback; artwork-only toggle when available, enlarged scrollable image with mobile pinch enabled, readable selected-face oracle text, mana/type/power/toughness/loyalty, printing metadata and official ruling link. Other face switches actual image and facts. Close/Escape, keyboard focus trap and focus return; sticky44px Close remains visible while scrolling. Printing/copy edits remain available through an explicit separate button and existing save handlers. No document change on inspection. Viewer styles isolated from the existing playtest inspector after rendered review caught a class-name collision.
+
+## Strategy scope delivered
+
+38 independently authored MTG rules-text/type tags in shared/strategyTags.ts; up to3 can be combined in the full Commander builder. Every exposed tag has a provider query and local matcher. Selected tags fetch legal color-compatible candidates, add explicit synergy reasons and prioritize multi-tag matches while retaining ownership, budget, role mix, singleton/color/format and complete100-card checks. Commander rules text suggests several relevant tags without forcing them. Selected tags recorded in constructed draft notes. Existing primary six-theme Strategy, generic suggestions and budget upgrades preserved. New tag expansion applies to full construction; generic Suggestions pane still uses its previous single-theme interface.
+
+Coverage: Tokens, Life gain, +1/+1 counters, Proliferate, Populate, Sacrifice, Death triggers, Reanimation, Self mill, Discard, Instants & sorceries, Storm, Copy spells, Artifacts, Treasure, Equipment, Auras, Enchantments, Landfall, Lands matter, Combat damage, Extra combats, Commander combat, Flying, Blink/flicker, Enters triggers, Creature copies, Card draw, Wheels, Life drain, Planeswalkers, Poison/toxic, Energy, Graveyard, Food, Opponent mill, Goad/forced attacks, Cycling.
+
+These are approximate rules-text heuristics, not deck statistics, combo validation or a competitive-strength claim. Arbitrary unsupported/custom labels, searchable typal facet, exhaustive archetypes, EDHREC taxonomy/deck/statistics parity and new multi-tag UI in the generic Suggestions pane remain incomplete. Related tags stay distinct; tests distinguish self/opponent mill, gain/drain and graveyard/reanimation. No EDHREC scrape or proprietary data copy. Candidate pool finite; no guarantee every tag combination yields a feasible deck.
+
+## Verified
+
+111 tests across13 files; web production build/ESLint/diff check pass. Actual isolated Chromium runtime390/1440: finished deck full image/oracle/zoom/close/Escape/focus return. Real Fable of the Mirror-Breaker/Reflection of Kiki-Jiki face image/name/oracle/type/stats switching and mobile zoom pass. Real Krenko construction with Tokens+Card draw -> complete100-card review -> open result card -> close -> guest save ->playtest draw/back/reopen/reload passes. Previously existing legal/budget/ownership tests remain green. No real account write or user-library mutation. Screenshots inspected and mobile modal conflict corrected.
+
+Direct Safari/native verification for this new viewer/tag batch remains unperformed; earlier commander input Safari verification is separate. Physical phone, screen-reader certification and network-image-error fallback are unverified. Source/data changes are bounded; existing guest documents and account boundaries retained. Foreground unused and released for Roblox. Meter66% remaining at final verification (shared weekly10080min window). Baseline checkpoint/card-chasm-before-card-details-tags.tar.gz; final checkpoint/card-chasm-card-details-tags-final.tar.gz; logs checkpoint/details-tags.
+
+## Direct Safari follow-up
+
+Separate temporary tab opened existing saved60-card QA Forest deck without writes. Full image/rules and Zoom verified. Safari mouse-button focus behavior exposed an opener-focus gap; deck/result triggers now explicitly focus before opening. Reopened and Escape returned focus to Forest button, confirmed in native AX. Builder selected Tokens+Life gain; both checked and summary showed combined names. Closed only temporary tab, no deck saved and original tabs/drafts preserved. Existing Safari deck had no double-faced card; Safari face-switch not verified, while real Fable/Reflection offscreen switching passed. Native viewer/tag interaction remains pending. Final build/lint pass after focus fix; foreground released.

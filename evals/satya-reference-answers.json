@@ -1,0 +1,37 @@
+{
+  "kind": "Developer/reference expectations, NOT model outputs, recommendations already applied, or calibrated performance scores",
+  "source": "User-rated examples, parent-verified card interactions and canonical cached card facts; related mechanics exposed during development",
+  "cases": [
+    {
+      "id": "clones",
+      "expectedAnswer": "Prefer clone effects that preserve useful ETBs and account for the legend rule. Spark Double's nonlegendary exception is copiable. Auton Soldier offers a clone ETB and myriad, but a Satya copy entering attacking does not trigger its own myriad. Phantasmal Image is a poor Satya target because targeting causes its sacrifice trigger.",
+      "mustNotClaim": "All clone exceptions are identical, or entering attacking triggers myriad."
+    },
+    {
+      "id": "extra-combats",
+      "expectedAnswer": "A fresh Port Razer copy can deal combat damage, untap Satya and support another combat with reliable evasion; the new copy enters attacking, so no global haste is needed for that attack. Combat Celebrant differs: exert requires a declared attack, with haste/untap and trigger timing for a later copied-token attack. Resolve Satya's copy before the relevant Celebrant untap when sequencing that line.",
+      "mustNotClaim": "Satya's entering-attacking token automatically exerts or triggers when-attacks abilities."
+    },
+    {
+      "id": "repeatable-draw",
+      "expectedAnswer": "Enduring Curiosity rewards creature connections; copies multiply the triggers. Its enchantment return applies to the nontoken original, not every token. Distinguish repeatable engine output from an entry cantrip: for this user's bracket-4 target, Inspiring Overseer is weak filler; Mulldrifter offers a more substantial ETB, subject to cost and slot tradeoffs.",
+      "mustNotClaim": "All token copies return as enchantments or any thematic cantrip is a strong optimized engine."
+    },
+    {
+      "id": "six-to-eight-mana-finishers",
+      "expectedAnswer": "Honor an explicit six-to-eight-mana request. Evaluate immediate board impact and a complete route, not mana value alone. Terror of Mount Velus costs seven and its ETB grants double strike before combat damage. Molten Primordial copied during attackers declaration steals after that declaration; newly stolen creatures need another combat to attack.",
+      "mustNotClaim": "Replace the requested high-cost creatures with cheaper unrelated support, or attack with newly stolen creatures in the already-declared attack."
+    },
+    {
+      "id": "evasion",
+      "expectedAnswer": "For repeated combat-damage triggers, evaluate evasion for future fresh tokens as well as the first attacker. Bedlam applies to new copies but is symmetrical and is downgraded as this user's default bracket-4 pick. A Rogue's Passage activation covers one creature, not every future token. Whispersilk Cloak is acceptable but slow and shroud prevents Satya targeting the equipped creature.",
+      "mustNotClaim": "One Passage activation grants global evasion, Bedlam is universally banned, or Cloak's shroud permits Satya targeting."
+    },
+    {
+      "id": "commander-protection",
+      "expectedAnswer": "Dolmen Gate is attractive if budget permits: it protects attacking creatures from combat damage without equipping each one. It does not prevent removal. Compare Cloak's cast-plus-equip cost, timing and shroud conflict; retain requested combat/evasion/protection packages and avoid claiming every protection effect answers every threat.",
+      "mustNotClaim": "Combat-damage prevention is protection from removal, or the user's positive overall feedback approves automatic deck edits."
+    }
+  ],
+  "grading": "Score grounded source coverage, hard constraints, strategic interactions, setup cost, downside and uncertainty separately. Review context and actual card text; do not treat this reference as a universal best-card list."
+}

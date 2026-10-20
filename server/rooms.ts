@@ -3,6 +3,8 @@ import type Database from "better-sqlite3";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { Document } from "../shared/model.ts";
+import { authoritativeDeck } from "./deckValidation.ts";
+import { scryfall } from "./cards.ts";
 import { act, loadDeck, viewRoom } from "./game.ts";
 import type { Room } from "./game.ts";
 export function installRooms(
@@ -32,6 +34,7 @@ export function installRooms(
           (r) =>
             r.public &&
             !r.started &&
+            r.players.some((p) => Date.now() - p.lastSeen < 15 * 60000) &&
             r.players.length < (r.format === "commander" ? 4 : 2),
         )
         .map((r) => ({
@@ -134,7 +137,7 @@ export function installRooms(
       res.status(404).json({ error: (e as Error).message });
     }
   });
-  app.post("/api/rooms/:code/deck", (req, res) => {
+  app.post("/api/rooms/:code/deck", async (req, res) => {
     try {
       const r = read(String(req.params.code));
       const p = r.players.find((p) => p.id === user(req));
@@ -148,14 +151,66 @@ export function installRooms(
         throw Error("Choose a deck matching the room format");
       if (deck.entries.reduce((n, e) => n + e.qty, 0) > 1000)
         throw Error("Deck too large");
-      p.pieces = loadDeck(deck);
-      p.deckName = deck.name;
-      p.ready = false;
-      r.revision++;
-      save(r);
-      res.json(viewRoom(r, p.id));
+      const casual = req.body.casual === true;
+      const checked = casual
+        ? {
+            document: deck,
+            validation: {
+              status: "casual" as const,
+              checkedAt: new Date().toISOString(),
+              errors: [],
+              warnings: ["Unverified deck loaded for agreed casual play."],
+            },
+          }
+        : await authoritativeDeck(
+            deck,
+            async (id) =>
+              (await scryfall(
+                "/cards/" + encodeURIComponent(id),
+              )) as import("../shared/model.ts").Card,
+          );
+      const updated = db.transaction(() => {
+        const latest = read(String(req.params.code));
+        if (latest.revision !== r.revision || latest.started)
+          throw Error("Room changed during validation. Load your deck again.");
+        const member = latest.players.find((q) => q.id === p.id)!;
+        member.pieces = loadDeck(checked.document);
+        member.deckName = deck.name;
+        member.deckValidation = checked.validation;
+        member.ready = false;
+        member.acceptsCasual = casual;
+        latest.revision++;
+        save(latest);
+        return latest;
+      })();
+      res.json(viewRoom(updated, p.id));
     } catch (e) {
       res.status(400).json({ error: (e as Error).message });
+    }
+  });
+  app.post("/api/rooms/:code/leave", (req, res) => {
+    try {
+      db.transaction(() => {
+        const r = read(String(req.params.code));
+        const index = r.players.findIndex((p) => p.id === user(req));
+        if (index < 0) throw Error("Not a room member");
+        const active = r.players[r.turn % r.players.length]?.id;
+        r.players.splice(index, 1);
+        if (!r.players.length) {
+          db.prepare("DELETE FROM rooms WHERE code=?").run(r.code);
+          return;
+        }
+        if (r.host === user(req)) r.host = r.players[0].id;
+        const activeIndex = r.players.findIndex((p) => p.id === active);
+        r.turn = activeIndex < 0 ? index % r.players.length : activeIndex;
+        r.finished = r.started && r.players.length < 2;
+        r.revision++;
+        r.log.unshift("A player left the table.");
+        save(r);
+      })();
+      res.json({ left: true });
+    } catch (e) {
+      res.status(409).json({ error: (e as Error).message });
     }
   });
   app.post("/api/rooms/:code/actions", (req, res) => {

@@ -1,0 +1,7 @@
+import {expect,it} from 'vitest';
+import {strategyTags,matchingTags,tagMatches} from '../shared/strategyTags';
+import type {Card} from '../shared/model';
+const card=(text:string):Card=>({id:'qa',name:'QA',oracle_text:text});
+it('tags are unique and every exposed tag has a candidate query and text predicate',()=>{expect(new Set(strategyTags.map(t=>t.id)).size).toBe(strategyTags.length);expect(strategyTags.length).toBeGreaterThan(30);for(const tag of strategyTags){expect(tag.query.length).toBeGreaterThan(2);expect(tag.pattern).toBeInstanceOf(RegExp);}});
+it('matches several supported themes without confusing gain and drain',()=>{const c=card('Create a Treasure token. You gain 2 life.');expect(matchingTags(c,['tokens','treasure','lifegain']).map(t=>t.id)).toEqual(['tokens','lifegain','treasure']);expect(tagMatches(c,'lifedrain')).toBe(false);expect(matchingTags(c,['unknown'])).toEqual([]);});
+it('distinguishes self mill from opponent mill and generic graveyard from reanimation',()=>{expect(tagMatches(card('You mill three cards.'),'self-mill')).toBe(true);expect(tagMatches(card('Target opponent mills three cards.'),'self-mill')).toBe(false);expect(tagMatches(card('Target opponent mills three cards.'),'mill')).toBe(true);expect(tagMatches(card('Exile a card from a graveyard.'),'reanimator')).toBe(false);expect(tagMatches(card('Return target creature card from your graveyard to the battlefield.'),'reanimator')).toBe(true);});

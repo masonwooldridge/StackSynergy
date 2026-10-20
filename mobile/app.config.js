@@ -1,5 +1,5 @@
 module.exports = ({ config }) => {
-  const allowHttp = process.env.CARDCHASM_ALLOW_HTTP === "1";
+  const allowHttp = (process.env.STACKSYNERGY_ALLOW_HTTP ?? process.env.CARDCHASM_ALLOW_HTTP) === "1";
   return {
     ...config,
     ios: {
@@ -7,7 +7,7 @@ module.exports = ({ config }) => {
       infoPlist: {
         ...config.ios?.infoPlist,
         NSLocalNetworkUsageDescription:
-          "Connect to your CardChasm server on your Wi-Fi network.",
+          "Connect to your StackSynergy server on your Wi-Fi network.",
         ...(allowHttp
           ? { NSAppTransportSecurity: { NSAllowsArbitraryLoads: true } }
           : {}),

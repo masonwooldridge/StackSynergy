@@ -6,7 +6,7 @@ cache.exec(
 let chain = Promise.resolve();
 let next = 0;
 export async function scryfall(path: string): Promise<unknown> {
-  if (!/^\/(cards|catalog)\//.test(path))
+  if (!/^\/(?:cards\/|catalog\/|sets(?:$|\/))/.test(path))
     throw Error("Unsupported card endpoint");
   const hit = cache
     .prepare("SELECT data FROM cache WHERE key=? AND expires>?")
@@ -17,7 +17,7 @@ export async function scryfall(path: string): Promise<unknown> {
     next = Date.now() + 150;
     const res = await fetch("https://api.scryfall.com" + path, {
       headers: {
-        "User-Agent": "CardChasm/0.1 (local MTG companion)",
+        "User-Agent": "StackSynergy/0.1 (local MTG companion)",
         Accept: "application/json;q=0.9,*/*;q=0.8",
       },
       signal: AbortSignal.timeout(15000),

@@ -7,7 +7,9 @@ export function newEntry(card: Card, board: Board = "mainboard"): Entry {
     board,
     language: card.lang || "en",
     condition: "near_mint",
-    finish: "nonfoil",
+    finish: card.finishes?.includes("nonfoil")
+      ? "nonfoil"
+      : card.finishes?.[0] || "nonfoil",
     purchasePrice: "",
     notes: "",
     tags: "",
@@ -25,7 +27,10 @@ export function addCopy(
       e.card.id === card.id &&
       e.board === targetBoard &&
       e.language === (card.lang || "en") &&
-      e.finish === "nonfoil" &&
+      e.finish ===
+        (card.finishes?.includes("nonfoil")
+          ? "nonfoil"
+          : card.finishes?.[0] || "nonfoil") &&
       e.condition === "near_mint" &&
       !e.notes &&
       !e.tags &&
@@ -93,4 +98,13 @@ export function missingCards(deck: Document, documents: Document[]) {
       missing: Math.max(0, e.qty - (available.get(k) || 0)),
     }))
     .filter((e) => e.missing > 0);
+}
+
+/** Change a saved row's printing without replacing its identity or lot metadata. */
+export function replacePrinting(document: Document, entryId: string, card: Card,
+  patch: Pick<Entry, "qty" | "finish" | "language" | "board">): Document {
+  if (!document.entries.some((entry) => entry.id === entryId))
+    throw Error("This row changed. Close details and reopen it before saving.");
+  return { ...document, entries: document.entries.map((entry) => entry.id === entryId
+    ? { ...entry, card, ...patch } : entry) };
 }

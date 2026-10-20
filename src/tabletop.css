@@ -1037,3 +1037,97 @@
 .solo-table .draw-controls button {
   touch-action: manipulation;
 }
+
+/* Card-centered playtest, shared by browser and the Expo WebView. */
+.playtest-mode .navigation,.playtest-mode .bottom-navigation,.playtest-mode .topbar { display:none !important; }
+.playtest-mode main { margin:0; width:100%; }
+.playtest-mode .content { max-width:1600px; padding:14px 24px 24px; margin:auto; }
+.playtest-mode .solo-page-heading { margin:0 0 12px; display:flex; align-items:center; gap:12px; justify-content:space-between; }
+.playtest-mode .solo-page-heading select { max-width:340px; }
+.solo-table .solo-scorebar { padding:8px 12px; gap:10px; flex-wrap:wrap; }
+.solo-table .life-control { gap:6px; }
+.solo-table .life-control strong { font-size:24px; }
+.solo-table .life-control small { font-size:9px; }
+.compact-turn { font-size:11px; color:#a7b1c3; margin-right:auto; }
+.solo-table .solo-piles { display:flex; width:auto; margin:10px 0; gap:6px; flex-wrap:wrap; }
+.solo-table .solo-piles button { padding:5px 8px; min-height:32px; flex:1; justify-content:space-between; }
+.solo-table .solo-layout { grid-template-columns:minmax(0,1fr); margin:10px 0; }
+.solo-table .solo-layout.has-selection { grid-template-columns:minmax(0,1fr) 240px; }
+.solo-table .solo-layout:not(.has-selection) .solo-sidebar { display:none; }
+.solo-table .battlefield-row { min-height:110px; padding:12px; }
+.solo-table .battlefield-row:has(.play-card) { min-height:190px; }
+.solo-table .zone-placeholder { margin:18px 0; }
+.solo-table .hand-area { min-height:185px; padding:12px; }
+.solo-table .hand-area .play-card { width:112px; flex-basis:112px; }
+.solo-table .hand-heading,.solo-table .battlefield-heading { padding:10px 12px; }
+.solo-table .playmat { display:flex; flex-direction:column; min-height:calc(100dvh - 210px); }
+.solo-table .battlefield-row:first-of-type { flex:1; }
+.solo-table .opening-banner { padding:10px 12px; margin:10px 0; }
+.solo-table .opening-banner p { margin-bottom:4px; }
+.solo-table .incomplete-deck,.session-warning { font-size:11px; margin:8px 0; color:#b9c5d8; }
+.solo-table .solo-footer { margin-top:8px; }
+.solo-table .zone-browser { position:fixed; z-index:30; right:18px; top:100px; bottom:18px; width:min(520px,calc(100vw - 36px)); overflow:auto; margin:0; box-shadow:0 20px 70px #000c; }
+.solo-table .zone-browser .table-card-row { max-height:none; }
+.solo-table .solo-tools { position:fixed; right:18px; top:70px; bottom:18px; z-index:25; width:min(560px,calc(100vw - 36px)); overflow:auto; box-shadow:0 20px 70px #000c; }
+.solo-table .options-heading { display:flex; align-items:center; justify-content:space-between; grid-column:1/-1; }
+.solo-table .options-session-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; grid-column:1/-1; }
+.solo-table .options-session-actions label { display:flex; gap:6px; }
+.solo-table .options-session-actions input { width:55px; margin:0; }
+.solo-table .solo-history { position:fixed; z-index:26; top:calc(100dvh - 80px); right:38px; width:240px; padding:8px; background:#17191f; max-height:60px; overflow:auto; }
+.solo-empty { max-width:550px; padding:40px 10px; }
+.solo-empty h2 { font-size:24px; }
+.solo-empty p { line-height:1.7; font-size:14px; }
+@media(max-width:700px) {
+ .playtest-mode .content { padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px)); }
+ .playtest-mode .solo-page-heading { flex-wrap:nowrap; margin-bottom:8px; }
+ .playtest-mode .solo-page-heading select { width:auto; min-width:0; max-width:55%; font-size:12px; }
+ .playtest-mode .solo-page-heading button { font-size:11px; white-space:nowrap; }
+ .solo-table .solo-scorebar { gap:6px; padding:7px; }
+ .solo-table .solo-scorebar > button { padding:7px; font-size:10px; min-height:36px; }
+ .solo-table .life-control { gap:3px; }
+ .solo-table .life-control > span { min-width:28px; }
+ .solo-table .life-control button { width:28px; }
+ .solo-table .compact-turn { font-size:10px; }
+ .solo-table .solo-piles { margin:8px 0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; }
+ .solo-table .solo-piles button { font-size:9px; padding:5px 4px; flex-wrap:wrap; justify-content:center; gap:3px; }
+ .solo-table .solo-piles b { font-size:9px; padding:2px 4px; }
+ .solo-table .playmat { min-height:calc(100dvh - 185px); }
+ .solo-table .battlefield-row { min-height:80px; padding:8px; }
+ .solo-table .battlefield-row:has(.play-card) { min-height:160px; }
+ .solo-table .battlefield-row:first-of-type { flex:1; }
+ .solo-table .hand-area { min-height:155px; padding:10px; }
+ .solo-table .hand-area .play-card { width:88px; flex-basis:88px; }
+ .solo-table .hand-heading { padding:8px 10px; }
+ .solo-table .opening-banner { flex-direction:row; align-items:center; gap:8px; }
+ .solo-table .opening-banner > div:last-child { flex-direction:column; gap:5px; }
+ .solo-table .opening-banner button { font-size:11px; min-height:36px; }
+ .solo-table .opening-banner p { font-size:10px; }
+ .solo-table .opening-banner label { font-size:9px; }
+ .solo-table.is-opening .playmat { min-height:230px; }
+ .solo-table .card-inspector { bottom:calc(8px + env(safe-area-inset-bottom,0px)); max-height:50dvh; }
+ .solo-table .zone-browser,.solo-table .solo-tools { top:70px; bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
+ .solo-table .solo-layout.has-selection { display:block; }
+}
+
+.solo-table .solo-tools .solo-history { position:static; grid-column:1/-1; width:auto; padding:10px 0; max-height:240px; margin:0; }
+
+.solo-table .options-symbol { display:none; }
+.solo-table .playmat { min-height:calc(100dvh - 245px); }
+@media(max-width:700px) {
+ .solo-table .solo-scorebar { flex-wrap:nowrap; }
+ .solo-table .options-label { display:none; }
+ .solo-table .options-symbol { display:inline; font-size:20px; line-height:1; }
+ .solo-table .playmat { min-height:0; }
+ .solo-table .battlefield-row:first-of-type { flex:0; }
+ .solo-table .battlefield-row { min-height:75px; }
+ .solo-table .zone-placeholder { margin:12px 0; }
+}
+.solo-table .hand-area,.solo-table .hand-area .play-card { touch-action:pan-x pan-y; }
+@media(max-width:700px) and (max-height:760px) {
+ .solo-table .hand-heading { padding:6px 8px; }
+ .solo-table .hand-area { min-height:140px; padding:8px; }
+ .solo-table .hand-area .play-card { width:78px; flex-basis:78px; min-height:110px; }
+ .solo-table .battlefield-row:not(:has(.play-card)) { min-height:40px; padding:6px; }
+ .solo-table .row-label { margin-bottom:6px; }
+ .solo-table .zone-placeholder { margin:6px 0; font-size:10px; }
+}

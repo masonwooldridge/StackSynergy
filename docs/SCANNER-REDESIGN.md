@@ -1,0 +1,15 @@
+# Immediate-camera scanner redesign — 2026-10-20
+
+Scan now opens directly into a full-height mobile camera view. Camera startup is automatic when device/browser permissions permit; loading, denied, unavailable, pause and retry remain explicit. The mobile layout uses a compact top bar, right-side Photos/automatic-capture controls, and a bottom capture/review pill. StackSynergy colors and typography retained. Automatic OCR capture runs every4seconds while active; duplicate-frame handling and Scan another copy retained. Matches still require explicit printing/quantity/destination selection and saving.
+
+Review is a compact separate list, with dismiss, no-match/manual search and a direct printing/copies editor. Session queue restoration retained. Camera tracks stop on leaving, review, hidden tab and stale asynchronous permission completion. A zero-size video frame cannot enter OCR. No changes to real saved collections/decks, Baylen, Search, assistant, or Playtest behavior.
+
+Reference: user Library libfile_0e59e072f2f8819198532f7822546b5d materialized successfully as checkpoint/scanner-redesign/IMG_1469.jpeg with current Library metadata; readable actual pixels inspected. The image shows a full camera feed, small right rail and compact bottom controls. Public official ManaBox website/store references were also inspected: https://manabox.app/ and https://play.google.com/store/apps/details?id=skilldevs.com.manabox . No invented live feed or decorative unsupported flash control.
+
+Validation: build/typecheck passed; lint clean;382tests across37files passed. Actual app headless browser checks passed at320x640,390x844,820x1180, without horizontal overflow. Automatic startup, denied/unavailable retry, disabled inactive capture, empty review/back, staged queue restore, direct editor, cancel preserving queue, dismissal persistence, settings and mocked lifecycle flows passed. Deferred permission completion after navigation stops stale stream; reopening makes one request per visit; review/hidden tab stop streams; zero-size frames blocked. No page errors or mutation requests observed. No permissions personally accepted. Physical camera and real OCR accuracy are NOT verified by these mocks.
+
+Evidence: checkpoint/scanner-redesign/verification.json and browser-final.log; build-final.log, lint-final.log, tests.log. Source before copies Scanner.before.tsx/App.before.tsx; current recoverable archive checkpoint/card-chasm-scanner-redesign.tar.gz. Browser harness verify.mjs uses isolated session and read-only API guard.
+
+Library screenshots: camera denied test libfile_5331f76ac8e88191b7086c969c0c7674; staged review libfile_b8f595321f9c8191951d0f6d9f8376e3; staged printing/copies libfile_748a734bfde0819181c17410d96eef01. Visible labels separate mocks/samples from physical camera verification.
+
+Pending next task: Playtest redesign from user references libfile_720ab58c2c288191b5858b08abd2cf8b and libfile_1fd2034ed7dc8191aa6d6225a7d58714. Not yet materialized or implemented; scanner results delivered first as requested.

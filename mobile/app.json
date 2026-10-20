@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CardChasm",
-    "slug": "cardchasm",
+    "name": "StackSynergy",
+    "slug": "stacksynergy",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -21,13 +21,18 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow CardChasm to photograph Magic cards for review.",
-          "photosPermission": "Allow CardChasm to choose card photos for review.",
+          "cameraPermission": "Allow StackSynergy to photograph Magic cards for review.",
+          "photosPermission": "Allow StackSynergy to choose card photos for review.",
           "microphonePermission": false
         }
       ],
       "expo-sharing"
     ],
-    "scheme": "cardchasm"
+    "scheme": [
+      "stacksynergy",
+      "cardchasm"
+    ],
+    "icon": "./assets/icon.png",
+    "githubUrl": "https://github.com/masonwooldridge/StackSynergy"
   }
 }

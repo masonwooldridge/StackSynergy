@@ -1,3 +1,4 @@
+import { plainTextInputProps } from "./inputBehavior";
 import { useEffect, useState } from "react";
 import type { Document } from "../shared/model";
 import { image } from "../shared/model";
@@ -9,6 +10,8 @@ import type {
   SoloZone,
 } from "../shared/solo";
 import "./tabletop.css";
+import "./playtestReference.css";
+import { decodeSoloSession, encodeSoloSession } from "../shared/soloSession";
 const labels: Record<SoloZone, string> = {
   library: "Library",
   hand: "Hand",
@@ -20,26 +23,54 @@ const labels: Record<SoloZone, string> = {
 };
 const version = (deck: Document) =>
   JSON.stringify(deck.entries.map((e) => [e.id, e.card.id, e.qty, e.board]));
-export default function Tabletop({ deck }: { deck: Document }) {
+export default function Tabletop({
+  deck,
+  onBack,
+}: {
+  deck: Document;
+  onBack: () => void;
+}) {
   const storageKey = `cardchasm-solo-v2:${deck.id}`;
-  const [fingerprint] = useState(() => version(deck));
-  const [state, setState] = useState<SoloState>(() => {
+  const [initial] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
-      if (
-        saved?.version === version(deck) &&
-        Array.isArray(saved.state?.pieces) &&
-        saved.state?.mana &&
-        saved.state?.casts
-      )
-        return saved.state;
+      const raw = localStorage.getItem(storageKey);
+      const saved = decodeSoloSession(raw);
+      if (saved)
+        return {
+          ...saved,
+          warning:
+            saved.version === version(deck)
+              ? ""
+              : "Your deck changed. This playtest is preserved; New game loads the updated deck.",
+        };
+      return {
+        state: startSolo(deck),
+        version: version(deck),
+        past: [] as SoloState[],
+        future: [] as SoloState[],
+        warning: raw
+          ? "The saved session could not be read. A new session was started."
+          : "",
+      };
     } catch {
-      /* New session if storage is unavailable. */
+      return {
+        state: startSolo(deck),
+        version: version(deck),
+        past: [] as SoloState[],
+        future: [] as SoloState[],
+        warning: "Session storage is unavailable. Keep this page open.",
+      };
     }
-    return startSolo(deck);
   });
-  const [past, setPast] = useState<SoloState[]>([]),
-    [future, setFuture] = useState<SoloState[]>([]);
+  const [fingerprint, setFingerprint] = useState(initial.version);
+  const [state, setState] = useState<SoloState & { deckVersion?: string }>({
+    ...initial.state,
+    deckVersion: initial.version,
+  });
+  const [sessionWarning, setSessionWarning] = useState(initial.warning);
+  const [storageError, setStorageError] = useState("");
+  const [past, setPast] = useState<SoloState[]>(initial.past),
+    [future, setFuture] = useState<SoloState[]>(initial.future);
   const [selected, setSelected] = useState(""),
     [bottom, setBottom] = useState<string[]>([]),
     [error, setError] = useState("");
@@ -58,12 +89,15 @@ export default function Tabletop({ deck }: { deck: Document }) {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ version: fingerprint, state }),
+        encodeSoloSession(fingerprint, state, past, future),
       );
+      setStorageError("");
     } catch {
-      /* Playing remains available without storage. */
+      setStorageError(
+        "This playtest is not saved on this device. Keep the page open; progress may be lost on reload.",
+      );
     }
-  }, [fingerprint, state, storageKey]);
+  }, [fingerprint, state, storageKey, past, future]);
   useEffect(() => {
     if (!restart && !zoom) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -93,13 +127,14 @@ export default function Tabletop({ deck }: { deck: Document }) {
     document.addEventListener("keydown", trap);
     return () => {
       document.removeEventListener("keydown", trap);
-      previous?.focus();
+      previous?.focus({ preventScroll: true });
     };
   }, [restart, zoom]);
-  function commit(next: SoloState) {
+  function commit(next: SoloState, nextVersion = fingerprint) {
     setPast((h) => [...h.slice(-49), state]);
     setFuture([]);
-    setState(next);
+    setState({ ...next, deckVersion: nextVersion });
+    setFingerprint(nextVersion);
     setError("");
   }
   function act(action: SoloAction) {
@@ -135,7 +170,7 @@ export default function Tabletop({ deck }: { deck: Document }) {
             ? [...ids, p.id]
             : ids,
       );
-    } else setSelected(p.id);
+    } else {setSelected(p.id);if(drawer===p.zone)setDrawer(null);}
   }
   function move(zone: SoloZone, position?: "top" | "bottom") {
     if (card) act({ type: "move", id: card.id, zone, position });
@@ -145,7 +180,8 @@ export default function Tabletop({ deck }: { deck: Document }) {
     return (
       <button
         key={p.id}
-        draggable={!opening}
+        style={p.zone==='hand'?{'--fan-angle':`${(hand.findIndex(c=>c.id===p.id)-(hand.length-1)/2)*4}deg`,'--fan-rise':`${Math.abs(hand.findIndex(c=>c.id===p.id)-(hand.length-1)/2)**2*4}px`} as React.CSSProperties:undefined}
+        draggable={!opening||(p.zone==='hand'&&needed>0)}
         onDragStart={(e) => e.dataTransfer.setData("text/plain", p.id)}
         onClick={() => choose(p)}
         onDoubleClick={() => {
@@ -183,6 +219,10 @@ export default function Tabletop({ deck }: { deck: Document }) {
     if (prev) {
       setFuture((h) => [state, ...h]);
       setState(prev);
+      setFingerprint(
+        (prev as SoloState & { deckVersion?: string }).deckVersion ||
+          fingerprint,
+      );
       setPast((h) => h.slice(0, -1));
       setBottom([]);
       setError("");
@@ -192,10 +232,50 @@ export default function Tabletop({ deck }: { deck: Document }) {
     if (future[0]) {
       setPast((h) => [...h, state]);
       setState(future[0]);
+      setFingerprint(
+        (future[0] as SoloState & { deckVersion?: string }).deckVersion ||
+          fingerprint,
+      );
       setFuture((h) => h.slice(1));
       setBottom([]);
     }
   }
+  function loadUpdatedDeck() {
+    commit(startSolo(deck), version(deck));
+    setSessionWarning("");
+    setSelected("");
+    setBottom([]);
+    setDrawer(null);
+    setRestart(false);
+  }
+  const updatedMainCards = deck.entries
+    .filter((e) => e.board === "mainboard")
+    .reduce((n, e) => n + e.qty, 0);
+  const playable = state.pieces.filter(
+    (piece) => !piece.token && piece.zone !== "command",
+  ).length;
+  if (!playable)
+    return (
+      <section className="solo-empty">
+        <h1>
+          {updatedMainCards
+            ? "Your updated deck is ready"
+            : "Add cards to begin"}
+        </h1>
+        <p>
+          {updatedMainCards
+            ? `This saved session has no library cards. Your deck now has ${updatedMainCards} mainboard card${updatedMainCards === 1 ? "" : "s"}. Load the updated deck to start an opening hand; Undo can restore this session.`
+            : "Add mainboard cards to draw an opening hand. Commander, side and maybe cards stay outside the library."}
+        </p>
+        {updatedMainCards > 0 && (
+          <button className="primary" onClick={loadUpdatedDeck}>
+            Load updated deck
+          </button>
+        )}
+        <button onClick={onBack}>Back to deck</button>
+        {!!past.length && <button onClick={undo}>↶ Undo reset</button>}
+      </section>
+    );
   return (
     <section
       className={`solo-table ${opening ? "is-opening" : ""}`}
@@ -211,6 +291,7 @@ export default function Tabletop({ deck }: { deck: Document }) {
         if (event.key === "Escape") {
           setSelected("");
           setDrawer(null);
+          setTools(false);
           setRestart(false);
           setZoom(false);
         }
@@ -225,29 +306,8 @@ export default function Tabletop({ deck }: { deck: Document }) {
         }
       }}
     >
-      <div className="solo-topline">
-        <div>
-          <span className="solo-kicker">SOLO PLAYTEST</span>
-          <h2>{deck.name}</h2>
-          <small>
-            {deck.format} · {state.pieces.filter((p) => !p.token).length} cards
-            · Local session
-          </small>
-        </div>
-        <div className="solo-top-actions">
-          <button disabled={!past.length} onClick={undo}>
-            ↶ Undo
-          </button>
-          <button disabled={!future.length} onClick={redo}>
-            ↷ Redo
-          </button>
-          <button aria-expanded={tools} onClick={() => setTools(!tools)}>
-            Tools
-          </button>
-          <button onClick={() => setRestart(true)}>New game</button>
-        </div>
-      </div>
-      <div className="solo-scorebar">
+      <div className="playtest-corner-tools"><button onClick={onBack} aria-label="Close playtest">× <span>Close</span></button><button onClick={()=>setTools(true)} aria-label="Keybinds and game options">ⓘ <span>Keybinds</span></button><small>{deck.name}</small></div>
+      <div className="solo-scorebar" aria-label="Playtest controls">
         <div className="life-control">
           <button
             aria-label="Lose one life"
@@ -266,51 +326,88 @@ export default function Tabletop({ deck }: { deck: Document }) {
             +
           </button>
         </div>
-        <div className="turn-control">
-          <span>
-            Turn <strong>{state.turn}</strong>
+        <span className="compact-turn">Turn {state.turn}</span>
+        <div className="quick-mana" aria-label="Mana pool totals">{Object.entries(state.mana).map(([color,value])=><button key={color} aria-label={`${color} mana pool: ${value}; edit mana`} onClick={()=>setTools(true)}><span className={'mana-symbol mana-symbol-'+color}>{color}</span><b>{value}</b></button>)}</div>
+        <button
+          disabled={opening || !count("library")}
+          className="primary"
+          onClick={() => act({ type: "draw", count: 1 })}
+        >
+          Draw
+        </button>
+        <button
+          disabled={opening}
+          aria-label="Next turn / untap"
+          title="Untap battlefield, clear mana and draw according to your Options preference"
+          onClick={() => act({ type: "nextTurn", draw: autoDraw })}
+        >
+          Next turn
+        </button>
+        <button disabled={!past.length} onClick={undo}>
+          ↶ Undo
+        </button>
+        <button
+          aria-label="Options"
+          aria-expanded={tools}
+          onClick={() => setTools(!tools)}
+        >
+          <span className="options-label">Game menu</span>
+          <span className="options-symbol" aria-hidden="true">
+            ⋯
           </span>
-          <button disabled={opening} onClick={() => act({ type: "phase" })}>
-            {phases[state.phase]} ›
-          </button>
-          <button
-            disabled={opening}
-            className="primary"
-            onClick={() => act({ type: "nextTurn", draw: autoDraw })}
-          >
-            Next turn
-          </button>
-        </div>
-        <div className="solo-piles">
-          {(["graveyard", "exile", "stack", "command"] as SoloZone[]).map(
-            (zone) => (
-              <button
-                key={zone}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => drop(zone, e)}
-                aria-pressed={drawer === zone}
-                onClick={() => {
-                  setDrawer(drawer === zone ? null : zone);
-                  setFind("");
-                }}
-              >
-                {labels[zone]}
-                <b>{count(zone)}</b>
-              </button>
-            ),
-          )}
-        </div>
+        </button>
+        <button className="dice-quick" onClick={()=>{setTools(true);requestAnimationFrame(()=>document.getElementById('solo-random-tools')?.scrollIntoView({block:'nearest'}));}}>Dice &amp; coins</button>
       </div>
+      <div className="solo-piles" aria-label="Playtest zones">
+        {(
+          ["library", "graveyard", "exile", "stack", "command"] as SoloZone[]
+        ).map((zone) => (
+          <button
+            key={zone}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => drop(zone, event)}
+            aria-label={`${labels[zone]} (${count(zone)})`}
+            aria-pressed={drawer === zone}
+            onClick={() => {
+              setDrawer(drawer === zone ? null : zone);
+              setPeek(false);
+              setFind("");
+            }}
+          >
+            <span className="pile-label">{labels[zone]} <b>{count(zone)}</b></span>
+            <span className="pile-picture">{zone==='library'?<span className="chasm-cardback"><span>◇</span><small>STACKSYNERGY</small></span>:image(state.pieces.filter(p=>p.zone===zone).slice(-1)[0]?.card||{id:'empty',name:''})?<img src={image(state.pieces.filter(p=>p.zone===zone).slice(-1)[0]!.card)} alt=""/>:<span className="pile-empty">No cards</span>}</span>
+          </button>
+        ))}
+      </div>
+      {(sessionWarning || fingerprint !== version(deck)) && (
+        <div role="status" className="session-warning">
+          <span>
+            {sessionWarning || "Deck updated. Your current game is preserved."}
+          </span>
+          <button onClick={() => setRestart(true)}>
+            Start from updated deck
+          </button>
+        </div>
+      )}
+      {storageError && <p role="alert">{storageError}</p>}
       {error && (
         <p className="solo-error" role="alert">
           {error}
         </p>
       )}
-      {opening && (
+      {state.pieces.filter((piece) => !piece.token).length <
+        (deck.format === "commander" ? 100 : 60) && (
+        <p className="incomplete-deck">
+          Incomplete deck ·{" "}
+          {state.pieces.filter((piece) => !piece.token).length} cards · Manual
+          playtest.
+        </p>
+      )}
+      {opening && count("hand") > 0 && (
         <div className="opening-banner">
           <div>
             <strong>
-              {state.mulls ? "Review your new hand" : "Your opening hand"}
+              {state.mulls ? "Review your new hand" : "Opening hand"}
             </strong>
             <p>
               {needed
@@ -319,6 +416,7 @@ export default function Tabletop({ deck }: { deck: Document }) {
             </p>
             <label>
               <input
+                {...plainTextInputProps}
                 type="checkbox"
                 checked={state.freeMulligan}
                 onChange={(e) => {
@@ -331,7 +429,7 @@ export default function Tabletop({ deck }: { deck: Document }) {
           </div>
           <div>
             <button onClick={() => act({ type: "mulligan" })}>
-              Mulligan{state.mulls ? ` (${state.mulls})` : ""}
+              Mulligan ({state.mulls})
             </button>
             <button
               className="primary"
@@ -340,11 +438,15 @@ export default function Tabletop({ deck }: { deck: Document }) {
             >
               Keep {count("hand") - needed}
             </button>
+            <button onClick={()=>setTools(true)}>Options</button>
           </div>
+          <small className="opening-hand-hint">Swipe the hand to see every card</small>
+          <small className="opening-manual-note">Manual play · resolve costs, triggers and combat yourself</small>
         </div>
       )}
-      <div className="solo-layout">
+      <div className={`solo-layout ${card ? "has-selection" : ""}`}>
         <div className="playmat">
+          <div className="battlefield-surface">
           <div className="battlefield-heading">
             <h3>
               Battlefield <span>{count("battlefield")}</span>
@@ -385,15 +487,10 @@ export default function Tabletop({ deck }: { deck: Document }) {
               )}
             </section>
           ))}
-          {!!count("command") && (
-            <section className="command-strip">
-              <h3>Command zone</h3>
-              <div className="table-card-row">
-                {state.pieces.filter((p) => p.zone === "command").map(tile)}
-              </div>
-            </section>
-          )}
+          </div>
+          <div className="hand-dock">
           <div className="hand-heading">
+            <button className="hand-menu" onClick={()=>setTools(true)}>⋮ Playtester actions</button>
             <div className="hand-title">
               <h3>
                 Hand <span>{count("hand")}</span>
@@ -401,26 +498,6 @@ export default function Tabletop({ deck }: { deck: Document }) {
               <small>
                 {handLands} lands · {hand.length - handLands} other cards
               </small>
-            </div>
-            <div className="draw-controls">
-              <button
-                disabled={opening || !count("library")}
-                onClick={() => act({ type: "draw", count: drawCount })}
-              >
-                Draw{drawCount > 1 ? ` ${drawCount}` : ""}
-              </button>
-              <input
-                aria-label="Number of cards to draw"
-                type="number"
-                min="1"
-                max="100"
-                value={drawCount}
-                onChange={(e) =>
-                  setDrawCount(
-                    Math.max(1, Math.min(100, Number(e.target.value) || 1)),
-                  )
-                }
-              />
             </div>
           </div>
           <div
@@ -435,52 +512,14 @@ export default function Tabletop({ deck }: { deck: Document }) {
               </p>
             )}
           </div>
+          </div>
         </div>
         <aside className="solo-sidebar">
-          <div className="library-widget">
-            <button
-              className="library-back"
-              aria-label={`Library: ${count("library")} cards`}
-              onClick={() => {
-                setDrawer(drawer === "library" ? null : "library");
-                setFind("");
-              }}
-            >
-              <span className="card-back-mark">◇</span>
-              <strong>{count("library")}</strong>
-              <small>Library</small>
-            </button>
-            <div>
-              <button
-                disabled={opening || !count("library")}
-                className="primary"
-                onClick={() => act({ type: "draw", count: 1 })}
-              >
-                Draw a card
-              </button>
-              <button onClick={() => act({ type: "shuffle" })}>Shuffle</button>
-              <button
-                onClick={() => {
-                  setDrawer("library");
-                  setPeek(true);
-                  setFind("");
-                }}
-              >
-                Look at top
-              </button>
-              <button
-                onClick={() => {
-                  setDrawer("library");
-                  setPeek(false);
-                  setFind("");
-                }}
-              >
-                Search library
-              </button>
-            </div>
-          </div>
           {card ? (
-            <section className="card-inspector">
+            <section
+              className="card-inspector"
+              aria-label="Selected card actions"
+            >
               <div className="inspector-heading">
                 <strong>{card.card.name}</strong>
                 <button
@@ -613,25 +652,26 @@ export default function Tabletop({ deck }: { deck: Document }) {
                 </p>
               )}
             </section>
-          ) : (
-            <div className="inspector-empty">
-              <span>◇</span>
-              <strong>Select a card</strong>
-              <p>View rules text, cast, move, tap or add counters.</p>
-            </div>
-          )}
+          ) : null}
         </aside>
       </div>
+      {opening&&<div className="opening-destinations"><div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');const piece=hand.find(p=>p.id===id);if(piece&&needed)choose(piece);}}><strong>Bottom of library</strong><span>{needed?`${bottom.length}/${needed} selected · drag or tap cards`:'No cards to bottom'}</span>{bottom.length>0&&<button onClick={()=>setBottom([])}>Clear choices</button>}</div><button onClick={()=>{setDrawer('exile');setPeek(false);}}>Exile <span>{count('exile')} cards · view zone</span></button></div>}
       {drawer && (
-        <section className="zone-browser">
+        <section
+          className="zone-browser"
+          aria-label={`${labels[drawer]} contents`}
+        >
           <div className="screen-heading">
             <h3>
               {labels[drawer]} <span>{count(drawer)}</span>
             </h3>
-            <button onClick={() => setDrawer(null)}>Close</button>
+            <button aria-label="Close zone" onClick={() => setDrawer(null)}>
+              Close
+            </button>
           </div>
           {drawer === "library" && (
             <div className="library-reveal-controls">
+              <button onClick={() => act({ type: "shuffle" })}>Shuffle</button>
               <button
                 aria-pressed={peek}
                 onClick={() => {
@@ -649,6 +689,7 @@ export default function Tabletop({ deck }: { deck: Document }) {
           )}
           {!(drawer === "library" && peek) && (
             <input
+              {...plainTextInputProps}
               aria-label="Find card in zone"
               placeholder="Find a card…"
               value={find}
@@ -669,11 +710,55 @@ export default function Tabletop({ deck }: { deck: Document }) {
         </section>
       )}
       {tools && (
-        <section className="solo-tools">
+        <section className="solo-tools" aria-label="Playtest options">
+          <div className="options-heading">
+            <h3>Playtest options</h3>
+            <button onClick={() => setTools(false)}>Close options</button>
+          </div>
+          <div className="options-session-actions">
+            <button disabled={!future.length} onClick={redo}>
+              ↷ Redo
+            </button>
+            <button
+              onClick={() => {
+                setTools(false);
+                setRestart(true);
+              }}
+            >
+              New game
+            </button>
+            <button disabled={opening} onClick={() => act({ type: "phase" })}>
+              {phases[state.phase]} ›
+            </button>
+            <label>
+              Draw count
+              <input
+                {...plainTextInputProps}
+                aria-label="Number of cards to draw"
+                type="number"
+                min="1"
+                max="100"
+                value={drawCount}
+                onChange={(event) =>
+                  setDrawCount(
+                    Math.max(1, Math.min(100, Number(event.target.value) || 1)),
+                  )
+                }
+              />
+            </label>
+            <button
+              disabled={opening || !count("library")}
+              onClick={() => act({ type: "draw", count: drawCount })}
+            >
+              Draw selected count
+            </button>
+          </div>
           <div>
-            <h3>Turn preferences</h3>
+            <h3 id="solo-random-tools">Turn preferences &amp; random tools</h3>
+            <p className="keybind-help">Keyboard: D draws one card; T taps or untaps the selected permanent; Escape closes panels. Select a card for actions. You resolve rules manually.</p>
             <label>
               <input
+                {...plainTextInputProps}
                 type="checkbox"
                 checked={autoDraw}
                 onChange={(e) => setAutoDraw(e.target.checked)}
@@ -734,12 +819,14 @@ export default function Tabletop({ deck }: { deck: Document }) {
           <div>
             <h3>Create token</h3>
             <input
+              {...plainTextInputProps}
               aria-label="Token name"
               value={tokenName}
               onChange={(e) => setTokenName(e.target.value)}
               maxLength={80}
             />
             <input
+              {...plainTextInputProps}
               aria-label="Token characteristics"
               value={tokenStats}
               onChange={(e) => setTokenStats(e.target.value)}
@@ -775,18 +862,19 @@ export default function Tabletop({ deck }: { deck: Document }) {
               </div>
             ))}
           </div>
+          <details className="solo-history">
+            <summary>Game history · {state.log.length} actions</summary>
+            {state.log.map((message, i) => (
+              <p key={i}>{message}</p>
+            ))}
+          </details>
         </section>
       )}
       <div className="solo-footer">
         <span role="status">{state.log[0]}</span>
         <small>Manual goldfish · You resolve costs, triggers and combat</small>
       </div>
-      <details className="solo-history">
-        <summary>Game history · {state.log.length} actions</summary>
-        {state.log.map((message, i) => (
-          <p key={i}>{message}</p>
-        ))}
-      </details>
+
       {restart && (
         <div className="modal-backdrop" onClick={() => setRestart(false)}>
           <section
@@ -805,7 +893,8 @@ export default function Tabletop({ deck }: { deck: Document }) {
             <button
               className="primary"
               onClick={() => {
-                commit(startSolo(deck));
+                commit(startSolo(deck), version(deck));
+                setSessionWarning("");
                 setSelected("");
                 setBottom([]);
                 setDrawer(null);

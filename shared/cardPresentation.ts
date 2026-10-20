@@ -1,0 +1,10 @@
+import type {Card,Entry} from './model';
+export const cardTypeOrder=['Planeswalker','Creature','Artifact','Instant','Sorcery','Enchantment','Land','Other'] as const;
+export type CardSort='name'|'price-asc'|'price-desc';
+export function primaryCardType(card:Card){const type=card.card_faces?.[0]?.type_line||card.type_line?.split(' // ')[0]||'';return cardTypeOrder.find(t=>new RegExp('\\b'+t+'\\b').test(type))||'Other';}
+export function entryUnitPrice(entry:Pick<Entry,'card'|'finish'>):number|null {const key=entry.finish==='foil'?'usd_foil':entry.finish==='etched'?'usd_etched':'usd';const raw=entry.card.prices?.[key];if(typeof raw!=='string'||!raw.trim())return null;const value=Number(raw);return Number.isFinite(value)&&value>=0?value:null;}
+export function sortCardEntries(entries:Entry[],sort:CardSort='name'){return [...entries].sort((a,b)=>{if(sort!=='name'){const x=entryUnitPrice(a),y=entryUnitPrice(b);if(x===null&&y!==null)return 1;if(y===null&&x!==null)return -1;if(x!==null&&y!==null&&x!==y)return sort==='price-asc'?x-y:y-x;}return a.card.name.localeCompare(b.card.name)||a.id.localeCompare(b.id);});}
+export function groupCardEntries(entries:Entry[],group:string,sort:CardSort='name') {const groups=new Map<string,Entry[]>();for(const e of entries){const key=group==='type'?primaryCardType(e.card):group==='tags'?e.tags.split(',')[0].trim()||'Untagged':'All cards';groups.set(key,[...(groups.get(key)||[]),e]);}return [...groups].sort(([a],[b])=>group==='type'?cardTypeOrder.indexOf(a as typeof cardTypeOrder[number])-cardTypeOrder.indexOf(b as typeof cardTypeOrder[number]):a.localeCompare(b)).map(([name,rows])=>({name,entries:sortCardEntries(rows,sort)}));}
+export const priceLabel=(entry:Pick<Entry,'card'|'finish'>)=>{const price=entryUnitPrice(entry);return price===null?'Price unavailable':'$'+price.toFixed(2)+' USD / copy';};
+
+export const thumbnailPrice=(entry:Pick<Entry,'card'|'finish'>)=>{const price=entryUnitPrice(entry);return price===null?'—':'$'+price.toFixed(2);};

@@ -1,0 +1,133 @@
+/* Full-card inspection: moved from the retired identity layer into its component owner. */
+/* StackSynergy identity: split card, condensed titles, precise working text. */
+.full-card-viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: #000d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.full-card-viewer {
+  width: min(1100px, 100%);
+  max-height: 94dvh;
+  overflow: auto;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  padding: 22px;
+  overscroll-behavior: contain;
+}
+.full-card-viewer > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.full-card-viewer-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 28px;
+}
+.full-card-viewer h2 {
+  font-family: var(--font-display);
+  font-size: 34px;
+}
+.full-card-viewer .oracle {
+  font-size: 16px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.card-image-viewport {
+  overflow: auto;
+  max-height: 73dvh;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.card-image-viewport img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 9px;
+}
+.card-image-viewport.zoomed img {
+  width: 900px;
+  max-width: none;
+}
+.full-card-viewer .muted {
+  font-size: 12px;
+}
+@media (max-width: 650px) {
+  .full-card-viewer-backdrop {
+    padding: 8px;
+  }
+  .full-card-viewer {
+    padding: 16px;
+    max-height: 98dvh;
+  }
+  .full-card-viewer-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .card-image-viewport {
+    max-height: 70dvh;
+  }
+  .full-card-viewer h2 {
+    font-size: 30px;
+  }
+  .full-card-viewer .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+.full-card-viewer {
+  box-sizing: border-box;
+}
+.full-card-viewer > header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--canvas);
+  padding-bottom: 10px;
+}
+.full-card-viewer > header button {
+  flex: none;
+  min-height: 44px;
+}
+.viewer-mode {
+  display: none;
+}
+@media (max-width: 650px) {
+  .viewer-mode {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .viewer-mode button[aria-pressed="true"] {
+    border-color: var(--copper);
+    color: var(--copper);
+  }
+  .full-card-viewer[data-pane="image"]
+    .full-card-viewer-layout
+    > div:last-child {
+    display: none;
+  }
+  .full-card-viewer[data-pane="rules"]
+    .full-card-viewer-layout
+    > div:first-child {
+    display: none;
+  }
+}
+
+.full-card-viewer .viewer-printing-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: 10px;
+  box-sizing: border-box;
+}
+
+/* October 19: compact card workspace, with detail available on demand. */

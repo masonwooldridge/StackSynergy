@@ -1,0 +1,29 @@
+import {expect,it} from 'vitest';
+import type {Card} from '../shared/model';
+import {rankCommanderCards,commanderCandidateQueries} from '../shared/commanderRelevance';
+import {commanderMechanic} from '../shared/recommendations';
+import {normalizeSelection,selectionMatches,selectionQuery,typeMatches} from '../shared/strategySelection';
+import {isMainDeckCard} from '../shared/deckEligibility';
+import {documentSchema} from '../shared/documentSchema';
+const satya:Card={id:'satya',name:'Satya, Aetherflux Genius',oracle_text:'Whenever Satya attacks, create a tapped and attacking token that is a copy of another target nontoken creature you control. You get {E}{E} (two energy counters).',type_line:'Legendary Creature — Human Artificer'};
+const c=(name:string,text:string,type='Creature'):Card=>({id:name,oracle_id:name,name,oracle_text:text,type_line:type});
+it('recognizes several Satya engines without confusing energy with +1/+1 counters',()=>{expect(commanderMechanic([satya])).toBe('tokens');expect(commanderCandidateQueries([satya]).map(q=>q.name)).toContain('Energy engine');const ranked=rankCommanderCards([c('Vanilla','Flying'),c('ETB','When ETB enters, draw two cards.'),c('Energy ETB','When Energy ETB enters, you get {E}{E}{E}.')],[satya]);expect(ranked.map(r=>r.card.name)).toEqual(['ETB','Energy ETB','Vanilla']);expect(ranked[1].reasons.join(' ')).toMatch(/energy/);});
+it('descriptive labels and unknown imported tags never change ranking or provider query',()=>{const card=c('Energy','You get {E}.');const custom=normalizeSelection({tags:['unknown community tag'],labels:['combo','favorite']});expect(custom.tags).toEqual([]);expect(custom.labels).toContain('unknown community tag');expect(selectionQuery(custom)).toBe('');expect(rankCommanderCards([card],[satya],custom)[0].score).toBe(rankCommanderCards([card],[satya])[0].score);});
+it('supports multiple mechanics and typal rules without treating labels as types',()=>{const card=c('Goblin engine','Create a Treasure token. You gain 2 life.','Creature — Goblin Artificer');const selection=normalizeSelection({tags:['tokens','lifegain'],creatureTypes:['Goblin'],labels:['Dragons']});expect(selectionMatches(card,selection)).toEqual(['Tokens','Life gain','Goblin typal']);expect(typeMatches(card,'Dragon')).toBe(false);expect(typeMatches(c('Universal','Changeling'),'Dragon')).toBe(true);expect(selectionQuery(selection)).toContain('t:"Goblin"');expect(selectionQuery(selection)).not.toContain('Dragons');});
+it('excludes auxiliary card types regardless of broad Commander legality flags',()=>{for(const type of ['Stickers','Artifact — Attraction','Artifact — Contraption','Plane — Ravnica','Conspiracy'])expect(isMainDeckCard(c(type,'',type))).toBe(false);expect(isMainDeckCard(c('Walker','','Legendary Planeswalker'))).toBe(true);});
+it('keeps backward compatible metadata and imported descriptive labels in documents',()=>{const d={id:crypto.randomUUID(),name:'QA',kind:'deck',format:'commander',notes:'',entries:[],revision:0};expect(documentSchema.parse(d)).not.toHaveProperty('strategy');const strategy=normalizeSelection({tags:['tokens'],creatureTypes:['Goblin'],labels:['Personal']});expect(documentSchema.parse({...d,strategy}).strategy).toEqual(strategy);});
+
+it('recognizes Goblin typal, spell triggers and permanent replay without commander names',()=>{
+ const goblin=c('Goblin leader','Create X Goblin creature tokens, where X is the number of Goblins you control.','Legendary Creature — Goblin Warrior');
+ expect(rankCommanderCards([c('Unrelated token','Create a Treasure token.','Artifact'),c('Goblin','Haste','Creature — Goblin')],[goblin])[0].card.name).toBe('Goblin');
+ const spell=c('Spell leader','Whenever you cast an instant or sorcery spell, create a Drake token.');
+ expect(rankCommanderCards([c('Unrelated token','Create a Treasure token.','Artifact'),c('Cantrip','Draw a card.','Instant')],[spell])[0].card.name).toBe('Cantrip');
+ expect(commanderCandidateQueries([spell]).map(q=>q.name)).toContain('Efficient spell triggers');
+ const replay=c('Permanent leader','You may cast a permanent spell of each permanent type from your graveyard.');
+ const ranked=rankCommanderCards([c('Return spell','Return target creature card from your graveyard to your hand.','Sorcery'),c('Recurring value','When Recurring value enters, draw a card.','Enchantment')],[replay]);
+ expect(ranked[0].card.name).toBe('Recurring value');
+ expect(rankCommanderCards([c('Instant','Draw a card.','Instant')],[goblin])[0].score).toBe(0);
+});
+
+it('prefers repeatable Satya energy engines and meaningful copied value over one-shot filler',()=>{const ranked=rankCommanderCards([c('Energy body','When this enters, you get {E}{E}.'),c('Decoction Module','Whenever a creature you control enters, you get {E}.','Artifact'),c('Copied cards','When this enters, draw two cards.')],[satya]);expect(ranked[0].card.name).toBe('Decoction Module');expect(ranked.findIndex(r=>r.card.name==='Copied cards')).toBeLessThan(ranked.findIndex(r=>r.card.name==='Energy body'));expect(ranked[0].reasons.join(' ')).toContain('https://edhrec.com/commanders/satya-aetherflux-genius');});
+it('does not rank mana-cost-less spells as free cantrips or credit an inactive back face',()=>{const cmd=c('Spell leader','Whenever you cast an instant or sorcery spell, create a Drake token.');expect(rankCommanderCards([{...c('Evermind','Draw a card.','Instant'),mana_cost:'',cmc:0},{...c('Opt','Scry 1. Draw a card.','Instant'),mana_cost:'{U}',cmc:1}],[cmd])[0].card.name).toBe('Opt');const back={...c('Front // Back','','Enchantment // Creature'),card_faces:[{name:'Front',type_line:'Enchantment',oracle_text:'Creatures you control get +1/+0.'},{name:'Back',type_line:'Creature',oracle_text:'When this enters, draw two cards. You get {E}{E}.'}]};expect(rankCommanderCards([back],[satya])[0].score).toBe(0);});

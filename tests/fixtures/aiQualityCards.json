@@ -1,0 +1,480 @@
+{
+  "retrievedAt": "2026-10-20T00:04:55.576Z",
+  "source": "Public Scryfall facts through local card cache; no model calls.",
+  "cards": [
+    {
+      "id": "3d134bb2-17ec-4e65-976e-f06fa983f3fb",
+      "oracle_id": "5f601f48-d24b-4883-9fde-b3f620e7c9ea",
+      "name": "Wall of Omens",
+      "type_line": "Creature — Wall",
+      "oracle_text": "Defender\nWhen this creature enters, draw a card.",
+      "mana_cost": "{1}{W}",
+      "cmc": 2,
+      "power": "0",
+      "toughness": "4",
+      "color_identity": [
+        "W"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil"
+      ],
+      "prices": {
+        "usd": "0.34",
+        "usd_foil": null,
+        "usd_etched": null,
+        "eur": "0.25",
+        "eur_foil": null,
+        "tix": "0.09"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1783907116",
+        "normal": "https://cards.scryfall.io/normal/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1783907116",
+        "large": "https://cards.scryfall.io/large/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1783907116",
+        "png": "https://cards.scryfall.io/png/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.png?1783907116",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1783907116",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1783907116",
+        "thumb": "https://cards.scryfall.io/thumb/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.webp?1783907116",
+        "grid": "https://cards.scryfall.io/grid/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.webp?1783907116",
+        "display": "https://cards.scryfall.io/display/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.webp?1783907116",
+        "art": "https://cards.scryfall.io/art/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.webp?1783907116",
+        "crop": "https://cards.scryfall.io/crop/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.webp?1783907116",
+        "jpeg": "https://cards.scryfall.io/normal/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1783907116"
+      },
+      "scryfall_uri": "https://scryfall.com/card/tdc/138/wall-of-omens?utm_source=api"
+    },
+    {
+      "id": "7e038684-c476-41db-a1b1-57c46e5b4c9a",
+      "oracle_id": "9c5f0d91-9d86-4e66-94fd-4af93ad01838",
+      "name": "Spirited Companion",
+      "type_line": "Enchantment Creature — Dog",
+      "oracle_text": "When this creature enters, draw a card.",
+      "mana_cost": "{1}{W}",
+      "cmc": 2,
+      "power": "1",
+      "toughness": "1",
+      "color_identity": [
+        "W"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil"
+      ],
+      "prices": {
+        "usd": "0.32",
+        "usd_foil": null,
+        "usd_etched": null,
+        "eur": "0.39",
+        "eur_foil": null,
+        "tix": "0.05"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1783915445",
+        "normal": "https://cards.scryfall.io/normal/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1783915445",
+        "large": "https://cards.scryfall.io/large/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1783915445",
+        "png": "https://cards.scryfall.io/png/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.png?1783915445",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1783915445",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1783915445",
+        "thumb": "https://cards.scryfall.io/thumb/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.webp?1783915445",
+        "grid": "https://cards.scryfall.io/grid/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.webp?1783915445",
+        "display": "https://cards.scryfall.io/display/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.webp?1783915445",
+        "art": "https://cards.scryfall.io/art/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.webp?1783915445",
+        "crop": "https://cards.scryfall.io/crop/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.webp?1783915445",
+        "jpeg": "https://cards.scryfall.io/normal/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1783915445"
+      },
+      "scryfall_uri": "https://scryfall.com/card/cmm/838/spirited-companion?utm_source=api"
+    },
+    {
+      "id": "79016cf3-6eea-4b21-9ff3-f187d606e19a",
+      "oracle_id": "d646e42b-5635-4798-b633-29c093b66a55",
+      "name": "Inspiring Overseer",
+      "type_line": "Creature — Angel Cleric",
+      "oracle_text": "Flying\nWhen this creature enters, you gain 1 life and draw a card.",
+      "mana_cost": "{2}{W}",
+      "cmc": 3,
+      "power": "2",
+      "toughness": "1",
+      "color_identity": [
+        "W"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil"
+      ],
+      "prices": {
+        "usd": "0.24",
+        "usd_foil": null,
+        "usd_etched": null,
+        "eur": "0.19",
+        "eur_foil": null,
+        "tix": null
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.jpg?1787563124",
+        "normal": "https://cards.scryfall.io/normal/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.jpg?1787563124",
+        "large": "https://cards.scryfall.io/large/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.jpg?1787563124",
+        "png": "https://cards.scryfall.io/png/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.png?1787563124",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.jpg?1787563124",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.jpg?1787563124",
+        "thumb": "https://cards.scryfall.io/thumb/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.webp?1787563124",
+        "grid": "https://cards.scryfall.io/grid/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.webp?1787563124",
+        "display": "https://cards.scryfall.io/display/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.webp?1787563124",
+        "art": "https://cards.scryfall.io/art/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.webp?1787563124",
+        "crop": "https://cards.scryfall.io/crop/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.webp?1787563124",
+        "jpeg": "https://cards.scryfall.io/normal/front/7/9/79016cf3-6eea-4b21-9ff3-f187d606e19a.jpg?1787563124"
+      },
+      "scryfall_uri": "https://scryfall.com/card/fdn/736/inspiring-overseer?utm_source=api"
+    },
+    {
+      "id": "55ec745d-8309-4afe-96d3-e87226661099",
+      "oracle_id": "97ba11a1-16cd-47ee-a187-1e919c468e4e",
+      "name": "Barbed Sextant",
+      "type_line": "Artifact",
+      "oracle_text": "{1}, {T}, Sacrifice this artifact: Add one mana of any color. Draw a card at the beginning of the next turn's upkeep.",
+      "mana_cost": "{1}",
+      "cmc": 1,
+      "color_identity": [],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "prices": {
+        "usd": null,
+        "usd_foil": null,
+        "usd_etched": null,
+        "eur": null,
+        "eur_foil": null,
+        "tix": "0.04"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.jpg?1783942595",
+        "normal": "https://cards.scryfall.io/normal/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.jpg?1783942595",
+        "large": "https://cards.scryfall.io/large/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.jpg?1783942595",
+        "png": "https://cards.scryfall.io/png/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.png?1783942595",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.jpg?1783942595",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.jpg?1783942595",
+        "thumb": "https://cards.scryfall.io/thumb/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.webp?1783942595",
+        "grid": "https://cards.scryfall.io/grid/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.webp?1783942595",
+        "display": "https://cards.scryfall.io/display/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.webp?1783942595",
+        "art": "https://cards.scryfall.io/art/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.webp?1783942595",
+        "crop": "https://cards.scryfall.io/crop/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.webp?1783942595",
+        "jpeg": "https://cards.scryfall.io/normal/front/5/5/55ec745d-8309-4afe-96d3-e87226661099.jpg?1783942595"
+      },
+      "scryfall_uri": "https://scryfall.com/card/me2/204/barbed-sextant?utm_source=api"
+    },
+    {
+      "id": "fb8d8106-b9bd-405c-886e-72fc301c65e1",
+      "oracle_id": "07a0cba9-8768-4fd9-a3d5-b0f83b4bf8e8",
+      "name": "Chaos Warp",
+      "type_line": "Instant",
+      "oracle_text": "The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.",
+      "mana_cost": "{2}{R}",
+      "cmc": 3,
+      "color_identity": [
+        "R"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "prices": {
+        "usd": null,
+        "usd_foil": null,
+        "usd_etched": null,
+        "eur": null,
+        "eur_foil": null,
+        "tix": null
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.jpg?1787743253",
+        "normal": "https://cards.scryfall.io/normal/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.jpg?1787743253",
+        "large": "https://cards.scryfall.io/large/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.jpg?1787743253",
+        "png": "https://cards.scryfall.io/png/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.png?1787743253",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.jpg?1787743253",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.jpg?1787743253",
+        "thumb": "https://cards.scryfall.io/thumb/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.webp?1787743253",
+        "grid": "https://cards.scryfall.io/grid/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.webp?1787743253",
+        "display": "https://cards.scryfall.io/display/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.webp?1787743253",
+        "art": "https://cards.scryfall.io/art/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.webp?1787743253",
+        "crop": "https://cards.scryfall.io/crop/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.webp?1787743253",
+        "jpeg": "https://cards.scryfall.io/normal/front/f/b/fb8d8106-b9bd-405c-886e-72fc301c65e1.jpg?1787743253"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mbc/72/chaos-warp?utm_source=api"
+    },
+    {
+      "id": "dd16222e-349c-4a2b-a7c8-8eb35a8ab332",
+      "oracle_id": "b1bc8e58-ea4f-46a9-b833-d780cf6758b3",
+      "name": "Static Prison",
+      "type_line": "Enchantment",
+      "oracle_text": "When this enchantment enters, exile target nonland permanent an opponent controls until this enchantment leaves the battlefield. You get {E}{E} (two energy counters).\nAt the beginning of your first main phase, sacrifice this enchantment unless you pay {E}.",
+      "mana_cost": "{W}",
+      "cmc": 1,
+      "color_identity": [
+        "W"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "prices": {
+        "usd": "0.39",
+        "usd_foil": "0.38",
+        "usd_etched": null,
+        "eur": "0.24",
+        "eur_foil": "0.78",
+        "tix": "0.04"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.jpg?1783911296",
+        "normal": "https://cards.scryfall.io/normal/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.jpg?1783911296",
+        "large": "https://cards.scryfall.io/large/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.jpg?1783911296",
+        "png": "https://cards.scryfall.io/png/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.png?1783911296",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.jpg?1783911296",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.jpg?1783911296",
+        "thumb": "https://cards.scryfall.io/thumb/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.webp?1783911296",
+        "grid": "https://cards.scryfall.io/grid/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.webp?1783911296",
+        "display": "https://cards.scryfall.io/display/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.webp?1783911296",
+        "art": "https://cards.scryfall.io/art/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.webp?1783911296",
+        "crop": "https://cards.scryfall.io/crop/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.webp?1783911296",
+        "jpeg": "https://cards.scryfall.io/normal/front/d/d/dd16222e-349c-4a2b-a7c8-8eb35a8ab332.jpg?1783911296"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/44/static-prison?utm_source=api"
+    },
+    {
+      "id": "76c3cad2-1e25-4abe-878d-9194de6fcc27",
+      "oracle_id": "b304ac72-7f40-40de-b8d6-6392909b6029",
+      "name": "Guide of Souls",
+      "type_line": "Creature — Human Cleric",
+      "oracle_text": "Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter).\nWhenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types.",
+      "mana_cost": "{W}",
+      "cmc": 1,
+      "power": "1",
+      "toughness": "2",
+      "color_identity": [
+        "W"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "prices": {
+        "usd": "3.54",
+        "usd_foil": "4.16",
+        "usd_etched": null,
+        "eur": "3.28",
+        "eur_foil": "3.81",
+        "tix": "0.77"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061",
+        "normal": "https://cards.scryfall.io/normal/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061",
+        "large": "https://cards.scryfall.io/large/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061",
+        "png": "https://cards.scryfall.io/png/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.png?1790212061",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061",
+        "thumb": "https://cards.scryfall.io/thumb/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.webp?1790212061",
+        "grid": "https://cards.scryfall.io/grid/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.webp?1790212061",
+        "display": "https://cards.scryfall.io/display/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.webp?1790212061",
+        "art": "https://cards.scryfall.io/art/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.webp?1790212061",
+        "crop": "https://cards.scryfall.io/crop/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.webp?1790212061",
+        "jpeg": "https://cards.scryfall.io/normal/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061"
+      },
+      "scryfall_uri": "https://scryfall.com/card/mh3/29/guide-of-souls?utm_source=api"
+    },
+    {
+      "id": "ae429806-28b5-4bee-b0e1-1bd876f282c2",
+      "oracle_id": "f82da236-e567-4221-a0bc-439a0c7e2b03",
+      "name": "Whirler Virtuoso",
+      "type_line": "Creature — Vedalken Artificer",
+      "oracle_text": "When this creature enters, you get {E}{E}{E} (three energy counters).\nPay {E}{E}{E}: Create a 1/1 colorless Thopter artifact creature token with flying.",
+      "mana_cost": "{1}{U}{R}",
+      "cmc": 3,
+      "power": "2",
+      "toughness": "3",
+      "color_identity": [
+        "R",
+        "U"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "prices": {
+        "usd": "0.25",
+        "usd_foil": "0.48",
+        "usd_etched": null,
+        "eur": "0.13",
+        "eur_foil": "0.40",
+        "tix": "0.03"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.jpg?1783937165",
+        "normal": "https://cards.scryfall.io/normal/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.jpg?1783937165",
+        "large": "https://cards.scryfall.io/large/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.jpg?1783937165",
+        "png": "https://cards.scryfall.io/png/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.png?1783937165",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.jpg?1783937165",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.jpg?1783937165",
+        "thumb": "https://cards.scryfall.io/thumb/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.webp?1783937165",
+        "grid": "https://cards.scryfall.io/grid/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.webp?1783937165",
+        "display": "https://cards.scryfall.io/display/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.webp?1783937165",
+        "art": "https://cards.scryfall.io/art/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.webp?1783937165",
+        "crop": "https://cards.scryfall.io/crop/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.webp?1783937165",
+        "jpeg": "https://cards.scryfall.io/normal/front/a/e/ae429806-28b5-4bee-b0e1-1bd876f282c2.jpg?1783937165"
+      },
+      "scryfall_uri": "https://scryfall.com/card/kld/190/whirler-virtuoso?utm_source=api"
+    },
+    {
+      "id": "3de308cc-14ac-407e-99e7-568572ecd0e7",
+      "oracle_id": "24d0f5e7-0d9e-4b76-900e-a7274e80312d",
+      "name": "Mulldrifter",
+      "type_line": "Creature — Elemental",
+      "oracle_text": "Flying\nWhen this creature enters, draw two cards.\nEvoke {2}{U} (You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.)",
+      "mana_cost": "{4}{U}",
+      "cmc": 5,
+      "power": "2",
+      "toughness": "2",
+      "color_identity": [
+        "U"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil"
+      ],
+      "prices": {
+        "usd": "0.33",
+        "usd_foil": null,
+        "usd_etched": null,
+        "eur": "0.60",
+        "eur_foil": null,
+        "tix": "0.06"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.jpg?1783904564",
+        "normal": "https://cards.scryfall.io/normal/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.jpg?1783904564",
+        "large": "https://cards.scryfall.io/large/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.jpg?1783904564",
+        "png": "https://cards.scryfall.io/png/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.png?1783904564",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.jpg?1783904564",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.jpg?1783904564",
+        "thumb": "https://cards.scryfall.io/thumb/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.webp?1783904564",
+        "grid": "https://cards.scryfall.io/grid/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.webp?1783904564",
+        "display": "https://cards.scryfall.io/display/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.webp?1783904564",
+        "art": "https://cards.scryfall.io/art/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.webp?1783904564",
+        "crop": "https://cards.scryfall.io/crop/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.webp?1783904564",
+        "jpeg": "https://cards.scryfall.io/normal/front/3/d/3de308cc-14ac-407e-99e7-568572ecd0e7.jpg?1783904564"
+      },
+      "scryfall_uri": "https://scryfall.com/card/ecc/67/mulldrifter?utm_source=api"
+    },
+    {
+      "id": "4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c",
+      "oracle_id": "ce8af7dd-49df-4419-9776-4157efc60b0f",
+      "name": "Satya, Aetherflux Genius",
+      "type_line": "Legendary Creature — Human Artificer",
+      "oracle_text": "Menace, haste\nWhenever Satya attacks, create a tapped and attacking token that's a copy of up to one other target nontoken creature you control. You get {E}{E} (two energy counters). At the beginning of the next end step, sacrifice that token unless you pay an amount of {E} equal to its mana value.",
+      "mana_cost": "{1}{U}{R}{W}",
+      "cmc": 4,
+      "power": "3",
+      "toughness": "5",
+      "color_identity": [
+        "R",
+        "U",
+        "W"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "etched"
+      ],
+      "prices": {
+        "usd": null,
+        "usd_foil": null,
+        "usd_etched": "0.17",
+        "eur": null,
+        "eur_foil": null,
+        "tix": null
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.jpg?1783911395",
+        "normal": "https://cards.scryfall.io/normal/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.jpg?1783911395",
+        "large": "https://cards.scryfall.io/large/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.jpg?1783911395",
+        "png": "https://cards.scryfall.io/png/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.png?1783911395",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.jpg?1783911395",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.jpg?1783911395",
+        "thumb": "https://cards.scryfall.io/thumb/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.webp?1783911395",
+        "grid": "https://cards.scryfall.io/grid/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.webp?1783911395",
+        "display": "https://cards.scryfall.io/display/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.webp?1783911395",
+        "art": "https://cards.scryfall.io/art/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.webp?1783911395",
+        "crop": "https://cards.scryfall.io/crop/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.webp?1783911395",
+        "jpeg": "https://cards.scryfall.io/normal/front/4/f/4f4bc218-e9c4-4e35-b4e0-bb5d2c6e1f2c.jpg?1783911395"
+      },
+      "scryfall_uri": "https://scryfall.com/card/m3c/150/satya-aetherflux-genius?utm_source=api"
+    },
+    {
+      "id": "14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8",
+      "oracle_id": "342199e0-15b6-4824-83da-25caef2592b3",
+      "name": "Hill Giant",
+      "type_line": "Creature — Giant",
+      "oracle_text": "",
+      "mana_cost": "{3}{R}",
+      "cmc": 4,
+      "power": "3",
+      "toughness": "3",
+      "color_identity": [
+        "R"
+      ],
+      "legalities": {
+        "commander": "legal"
+      },
+      "finishes": [
+        "nonfoil",
+        "foil"
+      ],
+      "prices": {
+        "usd": "0.04",
+        "usd_foil": "0.83",
+        "usd_etched": null,
+        "eur": "0.02",
+        "eur_foil": "0.28",
+        "tix": "0.04"
+      },
+      "image_uris": {
+        "small": "https://cards.scryfall.io/small/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.jpg?1783943018",
+        "normal": "https://cards.scryfall.io/normal/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.jpg?1783943018",
+        "large": "https://cards.scryfall.io/large/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.jpg?1783943018",
+        "png": "https://cards.scryfall.io/png/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.png?1783943018",
+        "art_crop": "https://cards.scryfall.io/art_crop/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.jpg?1783943018",
+        "border_crop": "https://cards.scryfall.io/border_crop/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.jpg?1783943018",
+        "thumb": "https://cards.scryfall.io/thumb/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.webp?1783943018",
+        "grid": "https://cards.scryfall.io/grid/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.webp?1783943018",
+        "display": "https://cards.scryfall.io/display/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.webp?1783943018",
+        "art": "https://cards.scryfall.io/art/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.webp?1783943018",
+        "crop": "https://cards.scryfall.io/crop/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.webp?1783943018",
+        "jpeg": "https://cards.scryfall.io/normal/front/1/4/14c2be6a-9ca6-4d3a-8dd0-db4ea40799f8.jpg?1783943018"
+      },
+      "scryfall_uri": "https://scryfall.com/card/10e/212/hill-giant?utm_source=api"
+    }
+  ]
+}

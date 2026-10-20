@@ -1,0 +1,41 @@
+# Adversarial integration review — 2026-10-20
+
+This finite pass used isolated handlers, cached public card facts and mock providers. No paid request, saved-deck edit, credential change, guard change, or ledger reset occurred.
+
+## Reproduced defects and fixes
+
+1. **Local-return follow-ups left old server reviews applicable.** A glossary explanation and an ambiguous “counters” request both returned before invalidating the previous review. Regression reproduction applied the old guest review with HTTP200, where HTTP409 was expected. Invalidation now happens before local returns, and both reproductions reject apply.
+2. **An older in-flight response could recreate a superseded review.** Requests now receive a bounded per-owner/scope/deck generation token. A response superseded during grounding is rejected before a provider call; a response superseded during the provider call cannot create a review. An injected-provider race test starts an old request, completes a newer local clarification, then releases the old result; the old result returns HTTP400 without a review. An already-started paid request could still incur a charge; this guard does not claim to reverse provider execution.
+3. **Explicit reversal of a role exclusion stayed permanently excluded.** The development sequence “more rocks, no dorks” → “No rocks; add dorks” → “Actually allow rocks; add rocks again” failed because exclusions were only accumulated. Explicit allow/permit now removes that role's previous exclusion; unrelated constraints and exclusions remain. This is bounded supported phrasing, not comprehensive natural-language negation parsing.
+
+No extra ranking weights were added in this pass. The suspected strategic-discussion routing defect did **not** reproduce: explain mode already bypasses mutation criteria correctly. A new regression verifies it invokes only the injected mock advisor, offers zero swap options and returns a discussion-only result.
+
+## Production path traced and checked
+
+`DeckAIChat.send` sends the selected scope/deck, current GUI budget/ownership and user/assistant history. Context edits abort locally, advance an epoch, clear selection and mark pending proposals stale; deck changes clear the conversation. `providerTurns` removes UI review metadata and caps individual messages at 2000 characters. The server accepts at most 12 turns; it does not silently truncate old constraints. Very long conversations need a new conversation; the existing API length limit remains.
+
+`/api/deck-ai/chat` resolves account-owned data or supplied guest context, parses all supplied user turns with `parseAIRequest`, and replaces supplied card labels/rules/prices with canonical card facts by ID. It performs at most three candidate searches with format, commander identity and purchase budget; exact type/mana/function eligibility is rechecked locally. `recommendAIUpgrades` and `previewUpgrade` create eligible exact pairs. The **same** canonical candidate records, parsed binding request and validated pair comparisons are passed to the configured provider. The canonical-rock API test inspects this actual context for exactly two mana, mana-rock function, $4.99 cap and no tapped sources, and verifies that only the eligible Mind Stone option is offered. Its $1 price is explicitly mocked QA pricing, not a live price claim.
+
+The production OpenAI adapter compiles strict IDs/pairs into the response schema; the handler also rejects unknown reference IDs, arbitrary cut/add combinations, duplicate cuts and invalid aggregate results. New tests verify forged supplied deck-card text/name/price are replaced before provider context and unknown response citations are rejected even without swaps. Grounded IDs do not prove every sentence of free prose is correct; Oracle text is compacted to 900 characters per card in provider context, and unsupported prose claims still need review.
+
+Proposals render actual paired card art, canonical types, mana values, prices and comparisons. Apply requires explicit selected pair IDs and rechecks review ownership/scope, expiration, original deck/inventory signatures, cumulative purchase budget, structural validation and binding request constraints. Reviews are single use. The canonical snapshot is valid for the review's bounded 15-minute lifetime; apply does not claim a new vendor-price lookup. No proposal auto-applies.
+
+## Why broader top threes did not change
+
+`checkpoint/ai-integration/ranking-attribution.mts` compares the recovered pre-ranking source and current ranking against the same frozen builder/decks and bounded candidate pools. Across eight commander/budget scenarios it examined **396 distinct candidate-case combinations**. **181** had a nonzero strategy-profile delta relative to the fixed cut; **27 accepted candidates had changed final scores**. No candidate changed eligibility, and the top threes stayed unchanged in all eight cases.
+
+Examples: Satya Goblin Engineer 52→50, Stone Idol Generator 42→36 and Cavalier of Flame 58→54; Krenko Pashalik Mons 73→65; Talrand Divert Disaster 72→64. Thus the new score path is connected and active. Many affected candidates ranked below the leaders or failed earlier role/curve/functional eligibility checks. Several $100 scenarios had no accepted candidates for the chosen fixed cut in either version. Existing ranking/eligibility and the narrow fixed-cut, first-100-printing candidate slice limit discrimination. The result does not justify turning up weights, claiming broad improvement, or claiming the higher-budget decks are optimal. This pass kept those limitations visible rather than tuning against the reserved live prompts.
+
+## Verification and artifacts
+
+- **330 tests / 29 files pass**, build/typecheck and lint pass. Build retains the existing large-bundle advisory.
+- Seven added development checks cover the two local-return stale-review paths, delayed-response race, explicit exclusion reversal, discussion-only routing, canonical replacement and unknown citations. All provider activity in these tests is mocked.
+- Headless Chrome at **393px and 1440px** runs the actual served UI against isolated real handlers and an injected mock provider. It verifies paired art/types/costs, actual guest apply on an isolated copy, +1 exact-five creature count, 100 cards, unchanged original copy, inherited constraints, $0/owned-only no substitution, rejection of wrong model choice, budget-edit staleness and deck-switch history reset. No foreground UI or saved user data was touched. Fresh evidence is under `checkpoint/ai-integration/ui/`; no Library-backed screenshot was overwritten.
+- The actual running API exposes `reviewProtocolVersion: 2026-10-20.2` alongside glossary/strategic version fields; the current Vite module and built preview contain the changes.
+- Spending metadata before/after remains **$0.128062**, pending zero, unblocked, within the existing $4 guard ceiling/$5 authorization. This batch made **zero paid calls**. Weekly meter was not revisited per later user instruction.
+
+Evidence root: `/Users/masonwooldridge/Documents/Codex/2026-10-14/task-3/checkpoint/ai-integration/`. `reproduction.log` and `negation-reproduction.log` preserve the initial failures; `tests.log`, `build.log`, `lint.log`, `ui-qa.log` and the attribution summary are final evidence.
+
+`evals/satya-reference-answers.json` contains six compact developer/reference expected answers, **not model outputs**: clones, extra combats, repeatable draw, six-to-eight-mana finishers, evasion and commander protection. The exact reserved live prompts remain unexecuted/unscored, but related mechanics and user feedback have been exposed in development; `evals/mtg-requests.json` now states that this is not a blind conceptual holdout.
+
+`evals/live-evaluation-plan.json` proposes **at most eight total attempts**, including failures/incomplete attempts, at an existing-guard conservative reservation bound of **$1.6576** (8 × $0.2072). This is a reservation upper bound under the current policy, not expected spend or a new authorization. Future execution requires explicit paid-call authorization, fresh valid pricing/ledger availability, existing rate/daily caps, isolated deck copies and stop-on-uncertain-charge rules. Nothing in this review authorizes calls or changes the guard.

@@ -31,3 +31,12 @@ mobile/.expo/
 mobile/ios/
 mobile/android/
 *.traineddata
+
+# Local runtime and review artifacts; never publish
+.expo/
+checkpoint/
+checkpoints/
+*.db
+*.db-*
+.env.*
+!.env.example

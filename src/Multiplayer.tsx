@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { plainTextInputProps } from "./inputBehavior";
+import { useEffect, useRef, useState } from "react";
 import type { Document } from "../shared/model";
 import { image } from "../shared/model";
 import type { Room, Player, Piece, Zone } from "../server/game";
-import { api } from "./api";
+import { acceptRoom } from "../shared/synchronization";
+import { api, NetworkError } from "./api";
 type View = Omit<Room, "players"> & {
   me: string;
   players: (Player & {
@@ -11,7 +13,18 @@ type View = Omit<Room, "players"> & {
     handCount: number;
   })[];
 };
-export default function Multiplayer({ decks }: { decks: Document[] }) {
+export default function Multiplayer({
+  decks,
+  signedIn = false,
+  onSignIn,
+}: {
+  decks: Document[];
+  signedIn?: boolean;
+  onSignIn?: () => void;
+}) {
+  const [entryPath, setEntryPath] = useState<"host" | "join" | "browse">(
+    "host",
+  );
   const [room, setRoom] = useState<View | null>(null);
   const [code, setCode] = useState(
     () => localStorage.getItem("cardchasm-room") || "",
@@ -25,6 +38,9 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState("");
   const [selected, setSelected] = useState<Piece | null>(null);
+  const [casual, setCasual] = useState(false);
+  const inFlight = useRef(false);
+  const [pending, setPending] = useState(false);
   const [deckId, setDeckId] = useState("");
   async function run(fn: () => Promise<void>) {
     try {
@@ -48,39 +64,68 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
     if (!roomCode) return;
     const id = setInterval(() => {
       api<View>("/rooms/" + roomCode)
-        .then(setRoom)
+        .then((incoming) => {
+          setRoom((current) => acceptRoom(current, incoming));
+          setMessage((current) => current.startsWith("Disconnected: ") ? "" : current);
+        })
         .catch((e) => setMessage("Disconnected: " + e.message + ". Retrying…"));
     }, 2000);
     return () => clearInterval(id);
   }, [roomCode]);
   async function action(action: string, extra: Record<string, unknown> = {}) {
-    if (!room) return;
+    if (!room || inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    const input = {
+      id: crypto.randomUUID(),
+      revision: room.revision,
+      action,
+      ...extra,
+    };
     await run(async () => {
-      setRoom(
-        await api<View>(`/rooms/${room.code}/actions`, {
-          id: crypto.randomUUID(),
-          revision: room.revision,
-          action,
-          ...extra,
-        }),
-      );
+      let incoming: View;
+      try {
+        incoming = await api<View>(`/rooms/${room.code}/actions`, input);
+      } catch (e) {
+        if (!(e instanceof NetworkError)) {
+          const refreshed = await api<View>(`/rooms/${room.code}`);
+          setRoom((current) => acceptRoom(current, refreshed));
+          throw e;
+        }
+        // An ambiguous transport failure retries the same command ID exactly once.
+        incoming = await api<View>(`/rooms/${room.code}/actions`, input);
+      }
+      setRoom((current) => acceptRoom(current, incoming));
       setSelected(null);
     });
+    inFlight.current = false;
+    setPending(false);
   }
   const me = room?.players.find((p) => p.id === room.me);
   return (
     <section>
       <div className="section-heading">
         <div>
-          <div className="eyebrow">REAL ACCOUNTS · SHARED TABLE</div>
-          <h1>A place at the table.</h1>
+          <h1>Online play</h1>
         </div>
       </div>
       <p>
-        Manual rules tabletop. Server-synchronized every two seconds; draws and
-        shuffles are resolved on the server. Hands remain private until
-        explicitly revealed. No multiplayer undo.
+        Host a table, join with a code, or browse public games. Hands stay
+        private until revealed.
       </p>
+      {!signedIn && (
+        <p className="notice">
+          Sign in to this server to host, join or browse. Local decks stay on
+          this device. <button onClick={onSignIn}>Sign in</button>
+        </p>
+      )}
+      <details>
+        <summary>How online play works</summary>
+        <p>
+          Use account decks for shared games. Players handle costs, triggers and
+          combat; draws and shuffles are shared. There is no multiplayer undo.
+        </p>
+      </details>
       {message && (
         <div className="notice" role="alert">
           {message}
@@ -88,16 +133,28 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
       )}
       {!room ? (
         <>
+          <nav className="online-paths" aria-label="Online play paths">
+            {(["host", "join", "browse"] as const).map((path) => (
+              <button
+                key={path}
+                aria-pressed={entryPath === path}
+                onClick={() => setEntryPath(path)}
+              >
+                {path === "host" ? "Host" : path === "join" ? "Join" : "Browse"}
+              </button>
+            ))}
+          </nav>
           <div className="panel">
-            <label>
+            <label hidden={entryPath === "browse"}>
               Display name
               <input
+                {...plainTextInputProps}
                 maxLength={40}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </label>
-            <div className="toolbar">
+            <div className="toolbar" hidden={entryPath !== "host"}>
               <select
                 aria-label="Room format"
                 value={format}
@@ -117,6 +174,7 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
               </select>
               <label className="checkbox">
                 <input
+                  {...plainTextInputProps}
                   type="checkbox"
                   checked={isPublic}
                   onChange={(e) => setPublic(e.target.checked)}
@@ -125,6 +183,7 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
               </label>
               <button
                 className="primary"
+                disabled={!signedIn}
                 onClick={() =>
                   run(async () => {
                     const r = await api<View>("/rooms", {
@@ -140,28 +199,44 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
                 Host game
               </button>
             </div>
-            <div className="toolbar">
+            <div className="toolbar" hidden={entryPath !== "join"}>
               <input
+                {...plainTextInputProps}
                 aria-label="Room code"
                 placeholder="Room code"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
               />
-              <button onClick={() => join()}>Join / reconnect</button>
               <button
+                disabled={!signedIn || !code.trim()}
+                onClick={() => join()}
+              >
+                Join / reconnect
+              </button>
+            </div>
+            <div hidden={entryPath !== "browse"}>
+              <button
+                disabled={!signedIn}
                 onClick={() => run(async () => setRooms(await api("/rooms")))}
               >
                 Find public games
               </button>
             </div>
-            {rooms.map((r) => (
-              <div className="toolbar" key={r.code}>
+            <div hidden={entryPath !== "browse"}>
+              {rooms.map((r) => (
+                <div className="toolbar" key={r.code}>
+                  <p>
+                    {r.code} · {r.format} · {r.players} players
+                  </p>
+                  <button onClick={() => join(r.code)}>Join</button>
+                </div>
+              ))}
+              {!rooms.length && entryPath === "browse" && (
                 <p>
-                  {r.code} · {r.format} · {r.players} players
+                  Refresh to find open public tables. Private rooms use a code.
                 </p>
-                <button onClick={() => join(r.code)}>Join</button>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         </>
       ) : (
@@ -169,16 +244,19 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
           <div className="panel">
             <div className="toolbar">
               <h2>Room {room.code}</h2>
-              <span>
-                {room.format} · revision {room.revision}
-              </span>
+              <span>{room.format}</span>
               <button
-                onClick={() => {
-                  setRoom(null);
-                  setSelected(null);
-                }}
+                onClick={() =>
+                  run(async () => {
+                    await api(`/rooms/${room.code}/leave`, {});
+                    localStorage.removeItem("cardchasm-room");
+                    setRoom(null);
+                    setCode("");
+                    setSelected(null);
+                  })
+                }
               >
-                Back to lobbies
+                {room.started ? "Concede and leave" : "Leave lobby"}
               </button>
             </div>
             <p>
@@ -201,20 +279,37 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
                       </option>
                     ))}
                 </select>
+                <label className="checkbox">
+                  <input
+                    {...plainTextInputProps}
+                    type="checkbox"
+                    checked={casual}
+                    onChange={(e) => setCasual(e.target.checked)}
+                  />
+                  Load without verification for casual play
+                </label>
                 <button
                   disabled={!deckId}
                   onClick={() =>
                     run(async () =>
                       setRoom(
-                        await api(`/rooms/${room.code}/deck`, { deckId }),
+                        await api(`/rooms/${room.code}/deck`, {
+                          deckId,
+                          casual,
+                        }),
                       ),
                     )
                   }
                 >
                   Load deck
                 </button>
+                <button onClick={() => action("casual")} disabled={pending}>
+                  {me?.acceptsCasual
+                    ? "Withdraw casual agreement"
+                    : "Agree to casual play"}
+                </button>
                 <button
-                  disabled={!me?.deckName}
+                  disabled={!me?.deckName || pending}
                   onClick={() => action("ready")}
                 >
                   {me?.ready ? "Unready" : "Ready"}
@@ -238,11 +333,24 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
                     <br />
                     {p.deckName || "No deck"}
                     <br />
+                    Deck: {p.deckValidation?.status || "unverified"} ·{" "}
+                    {p.acceptsCasual
+                      ? "Casual play agreed"
+                      : "Verified play requested"}
+                    <br />
                     Life: {p.life} · Hand: {p.handCount} · Library:{" "}
                     {p.libraryCount}
                     <br />
                     Tax: {p.tax} · Mulligans: {p.mulligans}
                   </p>
+                  {p.id === room.me && p.deckValidation && (
+                    <p>
+                      {[
+                        ...p.deckValidation.errors,
+                        ...p.deckValidation.warnings,
+                      ].join(" ")}
+                    </p>
+                  )}
                   {p.id === room.me && room.started && (
                     <div className="toolbar">
                       <button
@@ -273,7 +381,12 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
               ))}
             </div>
           </div>
-          {room.started && (
+          {room.finished && (
+            <p role="status">
+              Game finished. You can leave the table when ready.
+            </p>
+          )}
+          {room.started && !room.finished && (
             <>
               <div className="panel toolbar">
                 <button onClick={() => action("opening")}>Opening seven</button>
@@ -407,6 +520,7 @@ export default function Multiplayer({ decks }: { decks: Document[] }) {
               }}
             >
               <input
+                {...plainTextInputProps}
                 aria-label="Chat message"
                 maxLength={500}
                 value={chat}

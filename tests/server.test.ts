@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, describe, it, expect } from "vitest";
+import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,6 +25,7 @@ async function request(
 }
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
+  process.env.APP_ORIGINS = "http://127.0.0.1:5173,http://localhost:5173";
   process.env.DATABASE_PATH = join(dir, "app.sqlite");
   process.env.CARD_CACHE = join(dir, "cards.sqlite");
   const { app } = await import("../server/index");
@@ -74,6 +75,17 @@ const fixture = {
   ],
 };
 describe("HTTP persistence, isolation and independent clients", () => {
+  it("normalizes account email and never replaces a password through duplicate registration", async () => {
+    const correct = "test-only-password-123";
+    const login = await request(a, "/auth/login", { email: " A@TEST.INVALID ", password: correct });
+    expect(login.status).toBe(200);
+    const failed = await request(a, "/auth/login", { email: "a@test.invalid", password: "wrong-test-only-password" });
+    expect(failed.status).toBe(401);
+    const duplicate = await request(a, "/auth/register", { email: " A@TEST.INVALID ", password: "wrong-test-only-password" });
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.data.error).toContain("does not reset");
+    expect((await request(a, "/auth/login", { email: "a@test.invalid", password: correct })).status).toBe(200);
+  });
   it("requires authentication", async () =>
     expect((await request({ cookie: "" }, "/documents")).status).toBe(401));
   it("stores and reloads a document and detects conflicts", async () => {
@@ -109,8 +121,11 @@ describe("HTTP persistence, isolation and independent clients", () => {
     ).data;
     const code = r.code;
     await request(b, `/rooms/${code}/join`, { name: "Player B" });
-    await request(a, `/rooms/${code}/deck`, { deckId: fixture.id });
-    await request(b, `/rooms/${code}/deck`, { deckId: other.id });
+    await request(a, `/rooms/${code}/deck`, {
+      deckId: fixture.id,
+      casual: true,
+    });
+    await request(b, `/rooms/${code}/deck`, { deckId: other.id, casual: true });
     r = (await request(a, `/rooms/${code}`)).data;
     await request(a, `/rooms/${code}/actions`, {
       id: crypto.randomUUID(),
@@ -162,6 +177,16 @@ describe("HTTP persistence, isolation and independent clients", () => {
         })
       ).status,
     ).toBe(409);
+  });
+  it("accepts both explicitly configured local development origins", async () => {
+    for (const origin of ["http://127.0.0.1:5173", "http://localhost:5173"]) {
+      const response = await fetch(url + "/auth/login", {
+        method: "POST",
+        headers: { Origin: origin, "Content-Type": "application/json" },
+        body: "{}",
+      });
+      expect(response.status).toBe(400);
+    }
   });
   it("rejects cross-origin writes", async () => {
     const r = await fetch(url + "/logout", {
@@ -228,4 +253,127 @@ describe("atomic binder moves", () => {
         .status,
     ).toBe(409);
   });
+});
+
+describe("durable atomic proposal application", () => {
+  it("rejects another account and invalid legacy count-changing proposals", async () => {
+    const { default: Database } = await import("better-sqlite3");
+    const db = new Database(join(dir, "app.sqlite"));
+    try {
+      const account = (await request(a, "/me")).data.user;
+      const deck = (await request(a, "/documents")).data.find(
+        (d: { id: string }) => d.id === fixture.id,
+      );
+      const proposal = {
+        id: crypto.randomUUID(),
+        accountId: account,
+        deckId: deck.id,
+        revision: deck.revision,
+        budget: 0,
+        ownedOnly: false,
+        analysis: "Fixture",
+        changes: [
+          {
+            id: crypto.randomUUID(),
+            entry: deck.entries[0],
+            before: 60,
+            after: 59,
+            reason: "Fixture",
+          },
+        ],
+        rejected: [],
+        evidence: "Test only",
+        retrievedAt: "fixture",
+      };
+      db.prepare("INSERT INTO proposals VALUES(?,?,?,NULL)").run(
+        proposal.id,
+        account,
+        JSON.stringify(proposal),
+      );
+      const body = { changes: [proposal.changes[0].id] };
+      expect(
+        (await request(b, `/assistant/${proposal.id}/apply`, body)).status,
+      ).toBe(409);
+      const results = await Promise.all([
+        request(a, `/assistant/${proposal.id}/apply`, body),
+        request(a, `/assistant/${proposal.id}/apply`, body),
+      ]);
+      expect(results.map((r) => r.status).sort()).toEqual([409, 409]);
+      const saved = (await request(a, "/documents")).data.find(
+        (d: { id: string }) => d.id === deck.id,
+      );
+      expect(saved.entries[0].qty).toBe(60);
+      expect(saved.revision).toBe(deck.revision);
+      const stale = { ...proposal, id: crypto.randomUUID() };
+      db.prepare("INSERT INTO proposals VALUES(?,?,?,NULL)").run(
+        stale.id,
+        account,
+        JSON.stringify(stale),
+      );
+      expect(
+        (await request(a, `/assistant/${stale.id}/apply`, body)).status,
+      ).toBe(409);
+    } finally {
+      db.close();
+    }
+  });
+});
+
+describe("intentional room leaving", () => {
+  it("transfers host and removes the last empty lobby", async () => {
+    const hosted = (
+      await request(a, "/rooms", {
+        name: "Fixture A",
+        public: false,
+        format: "modern",
+      })
+    ).data;
+    await request(b, `/rooms/${hosted.code}/join`, { name: "Fixture B" });
+    expect((await request(a, `/rooms/${hosted.code}/leave`, {})).status).toBe(
+      200,
+    );
+    const remaining = (await request(b, `/rooms/${hosted.code}`)).data;
+    expect(remaining.players).toHaveLength(1);
+    expect(remaining.host).toBe(remaining.me);
+    expect((await request(a, `/rooms/${hosted.code}`)).status).toBe(403);
+    expect((await request(b, `/rooms/${hosted.code}/leave`, {})).status).toBe(
+      200,
+    );
+    expect((await request(b, `/rooms/${hosted.code}`)).status).toBe(404);
+  });
+});
+
+it('copies guests without overwriting account documents and atomically deduplicates interrupted retries',async()=>{
+ const token=crypto.randomUUID(),document={...fixture,id:crypto.randomUUID(),name:'Same name is allowed',revision:0};
+ await request(a,'/documents/'+document.id,{...document,notes:'Existing account original'},'PUT');
+ const before=await request(a,'/documents');
+ const first=await request(a,'/documents/copy-guest',{token,document});expect(first.status).toBe(200);expect(first.data.id).not.toBe(document.id);
+ const retry=await request(a,'/documents/copy-guest',{token,document});expect(retry.data).toEqual({id:first.data.id,alreadyCopied:true});
+ const after=await request(a,'/documents');expect(after.data).toHaveLength(before.data.length+1);for(const old of before.data)expect(after.data).toContainEqual(old);
+ const saved=after.data.find((d:typeof fixture)=>d.id===first.data.id);expect(saved.entries[0].id).not.toBe(document.entries[0].id);
+ expect((await request(a,'/documents/copy-guest',{token,document:{...document,name:'Changed'}})).status).toBe(409);
+ const separate=await request(b,'/documents/copy-guest',{token,document});expect(separate.status).toBe(200);expect(separate.data.id).not.toBe(first.data.id);
+ const bdocs=(await request(b,'/documents')).data;expect(bdocs.some((d:typeof fixture)=>d.id===first.data.id)).toBe(false);
+ expect((await request({cookie:''},'/documents/copy-guest',{token,document})).status).toBe(401);
+});
+
+
+it("search forwards filters/options, exposes Sets and keeps named/ID misses as errors", async () => {
+  const realFetch = globalThis.fetch, paths:string[]=[];
+  const spy=vi.spyOn(globalThis,"fetch").mockImplementation(async (input, init) => {
+    const target=String(input);
+    if(!target.startsWith("https://api.scryfall.com")) return realFetch(input,init);
+    paths.push(target); const u=new URL(target);
+    if(u.pathname === "/sets")return new Response(JSON.stringify({data:[{id:"set-fixture",code:"mkm",name:"Murders at Karlov Manor",card_count:451,set_type:"expansion"}]}),{headers:{"content-type":"application/json"}});
+    if(u.searchParams.get("q")?.includes("no-search-hit") || u.pathname.includes("named") || u.pathname.includes("missing-card-id"))return new Response(JSON.stringify({object:"error",code:"not_found"}),{status:404});
+    return new Response(JSON.stringify({data:[],has_more:false}),{headers:{"content-type":"application/json"}});
+  });
+  try {
+    const q="lang:ja set:mkm ui-"+crypto.randomUUID(); const result=await request(a,"/cards?"+new URLSearchParams({q,unique:"prints",order:"released",dir:"desc",extras:"1",multilingual:"1"}));expect(result.status).toBe(200);const forwarded=new URL(paths[0]);expect(forwarded.searchParams.get("q")).toBe(q);expect(forwarded.searchParams.get("unique")).toBe("prints");expect(forwarded.searchParams.get("include_extras")).toBe("true");expect(forwarded.searchParams.get("include_multilingual")).toBe("true");
+    const empty=await request(a,"/cards?q=no-search-hit-"+crypto.randomUUID());expect(empty.status).toBe(200);expect(empty.data).toEqual({data:[],has_more:false});
+    expect((await request(a,"/cards?mode=named&q=missing-"+crypto.randomUUID())).status).toBe(502);
+    expect((await request(a,"/cards?mode=id&q=missing-card-id-"+crypto.randomUUID())).status).toBe(502);
+    const sets=await request(a,"/sets");expect(sets.status).toBe(200);expect(sets.data.data[0].code).toBe("mkm");
+    const before=paths.length;expect((await request(a,"/cards?q=x&order=invalid")).status).toBe(502);expect(paths).toHaveLength(before);
+  } finally {spy.mockRestore();}
 });

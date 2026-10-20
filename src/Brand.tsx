@@ -1,21 +1,7 @@
 export function Crest() {
-  return (
-    <svg viewBox="0 0 40 48" fill="none" aria-hidden="true">
-      <path d="M20 2 37 12v23L20 46 3 35V12Z" stroke="currentColor" />
-      <path
-        d="m20 8 11 7v16l-11 9-11-9V15Z"
-        stroke="currentColor"
-        opacity=".4"
-      />
-      <path
-        d="m24 12-9 12h9l-8 12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <img className="brand-mark" src="/brand/stacksynergy-icon-192.png" alt="" aria-hidden="true" />;
 }
+
 const paths: Record<string, string> = {
   Home: "M3 10 12 3l9 7v11h-6v-7H9v7H3z",
   More: "M4 12h.01M12 12h.01M20 12h.01",
@@ -27,7 +13,7 @@ const paths: Record<string, string> = {
     "M5 3h14l2 2v14l-2 2H5l-2-2V5zM8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01",
   Multiplayer:
     "M16 21v-3a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v3m20 0v-3a4 4 0 0 0-3-4M13 3a4 4 0 0 1 0 8M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
-  Assistant: "m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3z",
+  Assistant: "M6 5h14v17H6zM2 17V2h14M10 10h6M13 7v6M10 17h6",
   Settings:
     "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M9 2h6l1 4 4 1 2 5-3 3v5l-5 2-3-3H6l-4-5 3-3V6z",
 };
