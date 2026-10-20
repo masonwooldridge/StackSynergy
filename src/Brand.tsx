@@ -1,5 +1,6 @@
+import "./Brand.css";
 export function Crest() {
-  return <img className="brand-mark" src="/brand/stacksynergy-icon-192.png" alt="" aria-hidden="true" />;
+  return <img className="brand-mark" width={32} height={32} src="/brand/stacksynergy-icon-192.png" alt="" aria-hidden="true" />;
 }
 
 const paths: Record<string, string> = {

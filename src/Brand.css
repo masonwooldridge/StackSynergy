@@ -1,0 +1,2 @@
+/* The selected 1A Classic mark owns its geometry, independent of retired themes. */
+.brand-mark{display:block;width:32px;height:32px;object-fit:contain;flex-shrink:0;border-radius:6px}.shell .brand-icon{width:32px;flex-shrink:0}.shell .brand-icon .brand-mark{width:32px;height:32px}.shell .appbar-brand{display:flex;align-items:center;gap:8px;white-space:nowrap}.shell .appbar-brand>.brand-mark{width:32px;height:32px}.shell .navigation .brand{gap:8px;font-size:20px;letter-spacing:-.4px}
