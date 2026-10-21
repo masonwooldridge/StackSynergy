@@ -34,6 +34,7 @@ export function commanderSignals(commanders: Card[]) {
     ),
   ];
   return {
+    castTypes: ["Enchantment", "Artifact", "Creature"].filter(type => new RegExp("whenever you cast (?:an? |your (?:first|second) )?" + type + " spell", "i").test(text) || (type === "Enchantment" && /whenever (?:an? |another )?enchantment[^.\n]*enters/i.test(text))),
     energy: /\{E\}|energy counter/i.test(text),
     copyCreature: /copy[^.\n]*creature|creature[^.\n]*copy/i.test(text),
     tokens: /creat[^.\n]*token|tap[^.\n]*untapped tokens|sacrifice[^.\n]*tokens you control|tokens you control/i.test(text),
@@ -54,6 +55,7 @@ export function commanderCandidateQueries(commanders: Card[]) {
           't:artifact mv<=3 (o:"add {" or o:"any color" or o:"add one mana" or o:"add two mana")',
       },
     ];
+  for (const kind of s.castTypes) queries.push({name: kind + " cast engine support", query: "t:" + kind.toLowerCase() + " mv<=4"});
   if (s.typal.length)
     queries.push({
       name: "Commander creature types",
@@ -151,6 +153,8 @@ export function rankCommanderCards(
           30,
           "Matches a creature type explicitly referenced by the commander.",
         );
+      if (s.castTypes.some(kind => new RegExp("\\b" + kind + "\\b").test(type)))
+        add(36 - Math.min(card.cmc || 0, 10) * 2, "A matching permanent spell directly triggers the commander; lower costs support repeated casts.");
       if (s.spells && /\b(?:Instant|Sorcery)\b/.test(type))
         add(
           24 - Math.min(card.cmc || 0, 12),

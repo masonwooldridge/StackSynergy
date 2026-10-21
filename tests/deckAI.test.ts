@@ -67,16 +67,14 @@ async function app(overrides: Partial<AIDeps> = {}) {
       },
     ],
   }));
-  const commit = vi.fn((_owner: string, _before: Document, next: Document) => ({
-    ...next,
-    revision: 1,
-  }));
+  let storedDeck = deck;
+  const commit = vi.fn((_owner: string, _before: Document, next: Document) => {storedDeck={...next,revision:1};return storedDeck;});
   installDeckAI(app, {
     enabled: () => true,
     configured: () => true,
     model: () => "mock-only",
     account: (r) => r.headers["x-test-user"] as string | undefined,
-    documents: () => [deck],
+    documents: () => [storedDeck],
     commit,
     card: async (path) =>
       path.startsWith("/cards/search")
@@ -90,6 +88,7 @@ async function app(overrides: Partial<AIDeps> = {}) {
   stops.push(() => new Promise((r) => server.close(() => r())));
   const root = "http://127.0.0.1:" + (server.address() as AddressInfo).port;
   return {
+    root,
     provider,
     commit,
     post: async (
@@ -162,7 +161,7 @@ it("grounds facts, requires review, preserves count and consumes reviews once", 
     ),
   ).toBe(100);
   expect(applied.body.document.entries[0]).toEqual(deck.entries[0]);
-  expect((await a.post("apply", payload)).status).toBe(409);
+  expect((await a.post("apply", payload)).body.replayed).toBe(true);
 });
 it("rejects stale guest content and scope changes", async () => {
   const a = await app(),
@@ -212,7 +211,8 @@ it("requires account auth and uses only server account documents", async () => {
     a.post("apply", payload, { "x-test-user": "owner" }),
     a.post("apply", payload, { "x-test-user": "owner" }),
   ]);
-  expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+  expect(results.map((r) => r.status).sort()).toEqual([200, 200]);
+  expect(results.filter(r => r.body.replayed)).toHaveLength(1);
   const applied = results.find((r) => r.status === 200)!;
   expect(a.commit).toHaveBeenCalledOnce();
   expect(applied.body.document.name).toBe(deck.name);
@@ -911,4 +911,84 @@ it('keeps prior rejection out of new discussion options and rejects directly rec
 it('rejects an invented installed-card claim in a mocked protection discussion',async()=>{
  const canonical=(JSON.parse(readFileSync(new URL('./fixtures/discussionEvidenceCards.json',import.meta.url),'utf8')).cards as Card[]),gate=canonical.find(c=>c.name==='Dolmen Gate')!;
  const a=await app({card:async path=>path.startsWith('/cards/search')?{data:[gate]}:facts.get(path.slice(7)),provider:async()=>({reply:'Your Dolmen Gate prevents combat damage to your attackers.',cardIds:[gate.id],swaps:[]})});const result=await a.post('chat',{...input(),turns:[{role:'user',content:'Explain combat protection for my deck. No edits.'}]});expect(result.status,JSON.stringify(result.body)).toBe(400);expect(result.body.error).toContain('installed card');expect(a.commit).not.toHaveBeenCalled();
+});
+
+it('clarifies conflicting total-budget prose before invoking a provider',async()=>{
+ const a=await app();const p={...input(),budget:200,budgetMeaning:'purchases',turns:[{role:'user',content:'My total deck budget including commander is $200.'}]};const r=await a.post('chat',p);expect(r.status).toBe(400);expect(r.body.error).toContain('controls differ');expect(a.provider).not.toHaveBeenCalled();
+});
+it('blocks model selections whose resulting total deck exceeds the cap, even if purchase budget fits',async()=>{
+ const a=await app();const r=await a.post('chat',{...input(),budget:5,budgetMeaning:'deck'});expect(r.status).toBe(200);expect(r.body.review).toBeNull();expect(r.body.noSwapReason).toContain('total cap');expect(a.provider).not.toHaveBeenCalled();expect(a.commit).not.toHaveBeenCalled();
+});
+it('passes total budget semantics to the provider and rechecks them on apply',async()=>{
+ const a=await app();const r=await a.post('chat',{...input(),budget:100,budgetMeaning:'deck'});expect(r.status).toBe(200);expect(r.body.review.budgetMeaning).toBe('deck');expect(r.body.review.totalBudget).toBe(100);expect(r.body.review.deckValue).toBeLessThanOrEqual(100);const applied=await a.post('apply',{scope:'guest',deck,collections:[],reviewId:r.body.review.id,pairIds:r.body.review.pairs.map((p:{id:string})=>p.id)});expect(applied.status).toBe(200);expect(applied.body.saved).toBe(false);expect(a.commit).not.toHaveBeenCalled();
+});
+
+it('blocks an alternate printing of a rejected or previously suggested Oracle identity, and allows explicit reversal',async()=>{
+ const alt={...better,id:crypto.randomUUID()};const provider=vi.fn(async(context:{validatedSwapOptions:{cutEntryId:string;addCardId:string}[]})=>{const p=context.validatedSwapOptions[0];return{reply:'Local fixture review.',cardIds:p?[p.addCardId]:[],swaps:p?[{cutEntryId:p.cutEntryId,addCardId:p.addCardId,reason:'Fixture choice.'}]:[]};});const a=await app({card:async path=>path.startsWith('/cards/search')?{data:[alt]}:path==='/cards/'+alt.id?alt:facts.get(path.slice(7)),provider});const pref={cardId:better.id,oracleId:better.oracle_id,name:better.name,state:'rejected',at:new Date().toISOString()};const p={...input(),cardPreferences:[pref]};let result=await a.post('chat',p);expect(result.status).toBe(200);expect(result.body.review).toBeNull();expect(provider).not.toHaveBeenCalled();result=await a.post('chat',{...p,cardPreferences:[{...pref,state:'suggested'}]});expect(result.body.review).toBeNull();result=await a.post('chat',{...p,turns:[{role:'user',content:'Reconsider Entry cards and propose card advantage upgrades.'}]});expect(result.status).toBe(200);expect(result.body.review?.pairs[0].add.id).toBe(alt.id);
+});
+it('explains an unpriced protected printing separately from an over-total-budget block without invoking the provider',async()=>{
+ const a=await app();const d=structuredClone(deck);d.entries[2].finish='foil';const r=await a.post('chat',{...input(),deck:d,budget:100,budgetMeaning:'deck'});expect(r.status).toBe(200);expect(r.body.review).toBeNull();expect(r.body.noSwapReason).toContain('no USD quote');expect(a.provider).not.toHaveBeenCalled();const over=await a.post('chat',{...input(),budget:1,budgetMeaning:'deck'});expect(over.status).toBe(200);expect(over.body.noSwapReason).toContain('exceeds');expect(a.provider).not.toHaveBeenCalled();
+});
+
+it('keeps total cap, commander specialization and Oracle rejection binding together across reconsideration',async()=>{
+ const alt={...better,id:crypto.randomUUID(),prices:{usd:'8'}};
+ const provider=vi.fn(async(context:{validatedSwapOptions:{cutEntryId:string;addCardId:string}[]})=>{const p=context.validatedSwapOptions[0];return{reply:'Simulated validated review.',cardIds:p?[p.addCardId]:[],swaps:p?[{cutEntryId:p.cutEntryId,addCardId:p.addCardId,reason:'Entry draw supports this copy commander.'}]:[]};});
+ const a=await app({card:async path=>path.startsWith('/cards/search')?{data:[alt]}:path==='/cards/'+alt.id?alt:facts.get(path.slice(7)),provider});
+ const pref={cardId:better.id,oracleId:better.oracle_id,name:better.name,state:'rejected',at:new Date().toISOString()};
+ const controls={...input(),budgetMeaning:'deck',cardPreferences:[pref]};
+ const reconsider=[{role:'user',content:'Reconsider Entry cards and propose card advantage upgrades.'}];
+ const capped=await a.post('chat',{...controls,budget:70,turns:reconsider});expect(capped.status).toBe(200);expect(capped.body.review).toBeNull();expect(provider.mock.calls[0]?.[0].validatedSwapOptions).toEqual([]);
+ const grounded=provider.mock.calls[0]?.[0] as unknown as {bindingRequest:{purchaseBudget?:number;totalDeckBudget:number};constraintSummary:string};expect(grounded.bindingRequest.totalDeckBudget).toBe(70);expect(grounded.bindingRequest.purchaseBudget).toBeUndefined();expect(grounded.constraintSummary).toContain("total deck cap including commander");expect(grounded.constraintSummary).not.toContain("new-purchase");
+ const allowed=await a.post('chat',{...controls,budget:100,turns:reconsider});expect(allowed.status,JSON.stringify(allowed.body)).toBe(200);expect(allowed.body.review?.pairs[0].add.id).toBe(alt.id);expect(allowed.body.review.deckValue).toBeLessThanOrEqual(100);expect(allowed.body.review.budgetMeaning).toBe('deck');
+ const rejected=await a.post('chat',{...controls,budget:100,turns:[{role:'user',content:'Propose card advantage upgrades.'}]});expect(rejected.status).toBe(200);expect(rejected.body.review).toBeNull();expect(provider).toHaveBeenCalledTimes(2);expect(a.commit).not.toHaveBeenCalled();
+});
+
+it('accepts explicit recovery from a type conflict through the production handler without forgetting the conversation',async()=>{
+ const provider=vi.fn(async(context:unknown)=>{void context;return{reply:'Simulated corrected discussion.',cardIds:[],swaps:[]};});const a=await app({provider});
+ const first={role:'user',content:'Only creatures. No creatures.'};const bad=await a.post('chat',{...input(),turns:[first]});expect(bad.status).toBe(400);expect(provider).not.toHaveBeenCalled();
+ const turns=[first,{role:'user',content:'Allow creatures. Explain card advantage for my deck. No edits.'}];const fixed=await a.post('chat',{...input(),turns});expect(fixed.status,JSON.stringify(fixed.body)).toBe(200);expect(provider).toHaveBeenCalledTimes(1);expect((provider.mock.calls[0][0] as {bindingRequest:{errors:string[];excludedTypes:string[]}}).bindingRequest).toMatchObject({errors:[],excludedTypes:[]});expect(a.commit).not.toHaveBeenCalled();
+});
+it('rejects an old review after commander/strategy changes and grounds the new current strategy',async()=>{
+ const nextCommander={...commander,id:crypto.randomUUID(),oracle_id:crypto.randomUUID(),name:'Fixture enchantment commander',oracle_text:'Whenever you cast an enchantment spell, draw a card.'};let count=0;const contexts:unknown[]=[];
+ const a=await app({card:async path=>path.startsWith('/cards/search')?{data:[better]}:path==='/cards/'+nextCommander.id?nextCommander:facts.get(path.slice(7)),provider:async(ctx)=>{contexts.push(ctx);count++;return count===1?{reply:'Simulated first review.',cardIds:[better.id],swaps:[{cutEntryId:deck.entries[3].id,addCardId:better.id,reason:'Entry cards.'}]}:{reply:'Simulated current strategy discussion.',cardIds:[],swaps:[]};}});
+ const first=await a.post('chat',input());expect(first.status).toBe(200);const changed={...structuredClone(deck),revision:2,strategy:{tags:['enchantments'],creatureTypes:[],labels:['New current plan']}};changed.entries[0].card=nextCommander;
+ const stale=await a.post('apply',{scope:'guest',deck:changed,collections:[],reviewId:first.body.review.id,pairIds:[first.body.review.pairs[0].id]});expect(stale.status).toBe(409);expect(a.commit).not.toHaveBeenCalled();
+ const fresh=await a.post('chat',{...input(),deck:changed,turns:[...input().turns,{role:'user',content:'Explain my current commander and strategy. No edits.'}]});expect(fresh.status,JSON.stringify(fresh.body)).toBe(200);const current=contexts.at(-1) as {commanders:{name:string}[];deck:{strategy:unknown;revision:number}};expect(current.commanders[0].name).toBe(nextCommander.name);expect(current.deck.strategy).toEqual(changed.strategy);expect(current.deck.revision).toBe(2);expect(fresh.body.review).toBeNull();
+});
+
+it('replays a lost guest apply acknowledgement without a second effect and rejects changed replay inputs',async()=>{
+ const a=await app(),r=await a.post('chat',input()),p={scope:'guest',deck,collections:[],reviewId:r.body.review.id,pairIds:[r.body.review.pairs[0].id]};
+ const first=await a.post('apply',p),retry=await a.post('apply',p);expect(first.status).toBe(200);expect(retry.status).toBe(200);expect(retry.body.replayed).toBe(true);expect(retry.body.document).toEqual(first.body.document);expect(a.commit).not.toHaveBeenCalled();
+ expect((await a.post('apply',{...p,pairIds:[crypto.randomUUID()]})).status).toBe(409);expect((await a.post('apply',{...p,deck:{...deck,notes:'Edited after request'}})).status).toBe(409);
+});
+it('does not expose an account receipt to another owner or overwrite later edits',async()=>{
+ let stored=structuredClone(deck);const commit=vi.fn((_o:string,_b:Document,next:Document)=>{stored={...next,revision:1};return stored;});const a=await app({documents:()=>[stored],commit});
+ const r=await a.post('chat',{...input(),scope:'account',deckId:deck.id},{'x-test-user':'owner'}),p={scope:'account',reviewId:r.body.review.id,pairIds:[r.body.review.pairs[0].id]};
+ expect((await a.post('apply',p,{'x-test-user':'owner'})).status).toBe(200);expect((await a.post('apply',p,{'x-test-user':'other'})).status).toBe(409);expect((await a.post('apply',p,{'x-test-user':'owner'})).body.replayed).toBe(true);stored={...stored,notes:'A later user edit',revision:2};expect((await a.post('apply',p,{'x-test-user':'owner'})).status).toBe(409);expect(commit).toHaveBeenCalledTimes(1);
+});
+it('does not consume a review or record success when its atomic account commit fails',async()=>{
+ let stored=structuredClone(deck),fail=true;const commit=vi.fn((_o:string,_b:Document,next:Document)=>{if(fail){fail=false;throw Error('SIMULATED commit failure');}stored={...next,revision:1};return stored;});const a=await app({documents:()=>[stored],commit});const r=await a.post('chat',{...input(),scope:'account',deckId:deck.id},{'x-test-user':'owner'}),p={scope:'account',reviewId:r.body.review.id,pairIds:[r.body.review.pairs[0].id]};expect((await a.post('apply',p,{'x-test-user':'owner'})).status).toBe(409);expect(stored).toEqual(deck);expect((await a.post('apply',p,{'x-test-user':'owner'})).status).toBe(200);expect((await a.post('apply',p,{'x-test-user':'owner'})).body.replayed).toBe(true);expect(commit).toHaveBeenCalledTimes(2);
+});
+it('requires state recovery when an interrupted apply receipt expires',async()=>{
+ let tick=Date.now();const a=await app({now:()=>tick});const r=await a.post('chat',input()),p={scope:'guest',deck,collections:[],reviewId:r.body.review.id,pairIds:[r.body.review.pairs[0].id]};expect((await a.post('apply',p)).status).toBe(200);tick+=16*60000;const retry=await a.post('apply',p);expect(retry.status).toBe(409);expect(retry.body.error).toContain('refresh the deck');expect(a.commit).not.toHaveBeenCalled();
+});
+it('uses current budget controls across long scope changes and retains a fresh stricter prose limit',async()=>{
+ let tick=Date.now();const contexts:unknown[]=[];const a=await app({now:()=>tick,provider:async ctx=>{contexts.push(ctx);return{reply:'Simulated budget discussion.',cardIds:[],swaps:[]};}});const history=[{role:'user',content:'My new purchase budget is $20.'},...Array.from({length:14},(_,i)=>({role:i%2?'user':'assistant',content:i%2?'Keep the same deck preferences.':'Historical discussion.'})),{role:'user',content:'Explain options using my current budget controls. No edits.'}];
+ for(const [budget,budgetMeaning] of [[100,'deck'],[50,'purchases']] as const){tick+=61000;const r=await a.post('chat',{...input(),budget,budgetMeaning,budgetContextStart:history.length-1,turns:history});expect(r.status,JSON.stringify(r.body)).toBe(200);}
+ const total=contexts[0] as {bindingRequest:{totalDeckBudget:number;candidateAdditionCeiling:number};constraintSummary:string};expect(total.bindingRequest.totalDeckBudget).toBe(100);expect(total.bindingRequest.candidateAdditionCeiling).toBe(100);expect(total.constraintSummary).toContain('$100.00');
+ expect((contexts[1] as {bindingRequest:{purchaseBudget:number}}).bindingRequest.purchaseBudget).toBe(50);
+ tick+=61000;const r=await a.post('chat',{...input(),budget:50,budgetMeaning:'purchases',turns:[...history,{role:'user',content:'Explain options under $5. No edits.'}]});expect(r.status).toBe(200);expect((contexts[2] as {bindingRequest:{purchaseBudget:number}}).bindingRequest.purchaseBudget).toBe(4.99);expect(a.commit).not.toHaveBeenCalled();
+});
+
+it('retains an earlier stricter budget inside an unchanged context and rejects invalid boundaries',async()=>{
+ const contexts:unknown[]=[];const a=await app({provider:async ctx=>{contexts.push(ctx);return{reply:'Simulated unchanged budget explanation.',cardIds:[],swaps:[]};}});
+ const turns=[{role:'user',content:'Explain options under $5. No edits.'},{role:'assistant',content:'Earlier explanation.'},{role:'user',content:'Explain other options with the same constraints. No edits.'}];
+ const r=await a.post('chat',{...input(),budget:50,budgetMeaning:'purchases',budgetContextStart:0,turns});expect(r.status,JSON.stringify(r.body)).toBe(200);expect((contexts[0] as {bindingRequest:{purchaseBudget:number}}).bindingRequest.purchaseBudget).toBe(4.99);
+ expect((await a.post('chat',{...input(),budgetContextStart:79})).status).toBe(400);expect((await a.post('chat',{...input(),turns,budgetContextStart:1})).status).toBe(400);expect(a.commit).not.toHaveBeenCalled();
+});
+
+it('does not start the provider after disconnect during noncooperative grounding',async()=>{
+ let release!:()=>void,started!:()=>void;const ready=new Promise<void>(r=>started=r),gate=new Promise<void>(r=>release=r);let first=true,lookups=0;let received:AbortSignal|undefined;const provider=vi.fn(async()=>({reply:'Simulated discussion only.',cardIds:[],swaps:[]}));
+ const a=await app({provider,card:async(path,signal)=>{lookups++;received=signal;if(first){first=false;started();await gate;}return path.startsWith('/cards/search')?{data:[better]}:facts.get(path.slice(7));}});
+ const controller=new AbortController(),pending=fetch(a.root+'/api/deck-ai/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...input(),turns:[{role:'user',content:'Explain this deck. No edits.'}]}),signal:controller.signal});const rejected=expect(pending).rejects.toMatchObject({name:'AbortError'});await ready;controller.abort();await rejected;await vi.waitFor(()=>expect(received?.aborted).toBe(true));release();await new Promise(r=>setTimeout(r,100));expect(provider).not.toHaveBeenCalled();expect(lookups).toBe(1);expect(a.commit).not.toHaveBeenCalled();
 });

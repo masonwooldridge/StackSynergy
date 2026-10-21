@@ -1,3 +1,7 @@
+import {activeDeckCards} from "./deckContext";
+import {mechanicalPrerequisites} from "./mechanicalSupport";
+import {reproductionReason} from "./deckEligibility";
+import {assertTotalBudget} from "./assistantBudget";
 import type { Card, Document } from "./model";
 import { validateDeck } from "./model";
 import { newEntry } from "./deckEditing";
@@ -26,6 +30,8 @@ export interface UpgradePlan {
   revision: number;
   signature: string;
   collectionSignature: string;
+  budgetMeaning?: "purchases" | "deck";
+  totalBudget?: number;
   budget: number;
   ownedOnly: boolean;
   pairs: UpgradePair[];
@@ -58,7 +64,7 @@ function coverage(deck: Document, commander: Card) {
   const counts: Record<string, number> = {};
   for (const e of deck.entries.filter((e) => e.board === "mainboard"))
     for (const role of [
-      ...constructionRoles(e.card, commander),
+      ...constructionRoles(e.card, commander, activeDeckCards(deck)),
       ...packageMatches(e.card, commander),
     ])
       counts[role] = (counts[role] || 0) + e.qty;
@@ -157,6 +163,12 @@ export function previewUpgrade(
     throw Error(
       "Selected new purchases exceed the addition budget. Removed cards do not fund additions.",
     );
+  if (plan.budgetMeaning === "deck") assertTotalBudget(next, plan.totalBudget ?? plan.budget);
+  for (const pair of plan.pairs.filter(p => ids.includes(p.id))) {
+    if (reproductionReason(pair.add)) throw Error("Choose a tournament-eligible printing for automated upgrades; collectible search remains available for manual casual use.");
+    const unsupported = mechanicalPrerequisites(pair.add, activeDeckCards(next), next.entries.filter(e => e.board === "commander").map(e => e.card));
+    if (unsupported.length) throw Error(unsupported.join(" "));
+  }
   validateChange(deck, next);
   return { document: next, purchase };
 }
@@ -203,7 +215,7 @@ export function proposeUpgrades(
     ),
     rank = new Map(ranked.map((r) => [oracleKey(r.card), r]));
   const score = (c: Card) => {
-    const roles = constructionRoles(c, commander);
+    const roles = constructionRoles(c, commander, activeDeckCards(deck).concat(c));
     return (
       (rank.get(oracleKey(c))?.score || 0) +
       Math.max(0, ...roles.map((r) => supportQuality(c, r, commander))) / 2
@@ -216,6 +228,7 @@ export function proposeUpgrades(
     if (
       installed.has(key) ||
       isLandSlot(c) ||
+      reproductionReason(c) ||
       c.legalities?.commander !== "legal" ||
       !c.color_identity ||
       c.color_identity.some((s) => !colors.has(s))
@@ -257,8 +270,8 @@ export function proposeUpgrades(
     for (const cut of cuts) {
       if (usedCuts.has(cut.id) || score(add) < score(analysis(cut.card)) + 8)
         continue;
-      const oldRoles = constructionRoles(analysis(cut.card), commander),
-        newRoles = constructionRoles(add, commander);
+      const oldRoles = constructionRoles(analysis(cut.card), commander, activeDeckCards(deck)),
+        newRoles = constructionRoles(add, commander, activeDeckCards({...deck,entries:deck.entries.filter(e=>e.id!==cut.id)}).concat(add));
       if (oldRoles.some((r) => !newRoles.includes(r))) continue;
       const pair: UpgradePair = {
         id: crypto.randomUUID(),

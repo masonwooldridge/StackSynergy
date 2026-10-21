@@ -1,3 +1,4 @@
+import {reproductionReason} from "../shared/deckEligibility";
 import "./CardInspector.css";
 import { useEffect, useRef, useState } from "react";
 import type { Card } from "../shared/model";
@@ -139,6 +140,7 @@ export default function CardInspector({
           </div>
           <div>
             <h2>{current.name}</h2>
+            {reproductionReason(card) && <p role="note">{reproductionReason(card)}</p>}
             <p>{current.mana_cost || card.mana_cost || "No mana cost"}</p>
             <p>{current.type_line || card.type_line}</p>
             <p className="oracle">

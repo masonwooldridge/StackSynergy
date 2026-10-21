@@ -3,6 +3,7 @@ import {
   undoDeckRemoval,
   type DeckRemoval,
 } from "../shared/deckRemoval";
+import {reproductionReason} from "../shared/deckEligibility";
 import CardThumbnail from "./CardThumbnail";
 import {
   groupCardEntries,
@@ -811,12 +812,16 @@ export function DocumentEditor({
             {validation?.errors.length
               ? `${validation.errors.length} check${validation.errors.length === 1 ? "" : "s"} to review`
               : validation?.warnings.length
-                ? "Metadata review needed"
+                ? "Review warnings"
                 : "Checks passed"}
           </button>
           {d.commanderBracket && <span>Bracket {d.commanderBracket}</span>}
         </div>
       )}
+      {deck && d.entries.some(e => e.board !== "maybeboard" && reproductionReason(e.card)) && <section className="inline-status" aria-label="Casual proxy printing warning">
+        <p>Non-tournament reproduction printing in this deck. Oracle card legality does not certify the printing. Ask your casual group before using proxies.</p>
+        <label><input type="checkbox" checked={d.casualProxyAccepted === true} disabled={busy} onChange={event => { const accepted=event.target.checked; void run(async () => { await onSave({...d,casualProxyAccepted:accepted}); }); }} /> I acknowledge casual proxy use; this does not make these printings tournament eligible.</label>
+      </section>}
       <div
         className={
           deck && discoveryOpen && tab === "cards"

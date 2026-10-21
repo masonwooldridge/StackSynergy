@@ -1,9 +1,12 @@
+import {withChoiceLock} from "./choiceStorage";
+import {cardPreferenceStorageKey,migrateCardPreferences,messagePreferences, normalizePreferences, preferenceFor, setCardPreference, type CardPreference} from "../shared/cardPreferences";
+import {budgetConflict, type BudgetMeaning} from "../shared/assistantBudget";
 import { MAX_CONVERSATION_TURNS } from "../shared/aiConversationMemory";
 import { parseAIRequest, requestSummary } from "../shared/aiConstraints";
 import { countAIRequest } from "../shared/aiConstraints";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Card, Document } from "../shared/model";
-import { api, isAbortError } from "./api";
+import { api, isAbortError, NetworkError } from "./api";
 import CommanderPicker from "./CommanderPicker";
 import CardThumbnail from "./CardThumbnail";
 import AISwapReview, { type AIReview, type ReviewState } from "./AISwapReview";
@@ -16,6 +19,7 @@ type Turn = {
   reviewState?: ReviewState;
   noSwapReason?: string | null;
 };
+type BudgetThreadContext = {cap:number;meaning:BudgetMeaning;start:number};
 type Status = { enabled: boolean; model: string; message: string };
 export default function DeckAIChat({
   documents,
@@ -37,11 +41,17 @@ export default function DeckAIChat({
   const [id, setId] = useState(initialDeckId),
     [commander, setCommander] = useState<Card | null>(null),
     [budget, setBudget] = useState("25"),
+    [budgetMeaning, setBudgetMeaning] = useState<BudgetMeaning>("purchases"),
     [bracket, setBracket] = useState(3),
     [ownedOnly, setOwnedOnly] = useState(false),
     [status, setStatus] = useState<Status | null>(null),
     [turns, setTurns] = useState<Turn[]>([]),
     [loadedKey, setLoadedKey] = useState(""),
+    [preferences, setPreferences] = useState<CardPreference[]>([]),
+    [preferenceBase, setPreferenceBase] = useState<string|null>(null),
+    [preferenceLoadFailed,setPreferenceLoadFailed] = useState(false),
+    [ignoreTranscriptRejections, setIgnoreTranscriptRejections] = useState(false),
+    [clearedPreferences, setClearedPreferences] = useState<{preferences:CardPreference[];ignore:boolean;raw?:string;afterRaw?:string}|null>(null),
     [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -57,13 +67,29 @@ export default function DeckAIChat({
     epoch = useRef(0),
     alive = useRef(true),
     selectionKey = ownerKey + ":" + scope + ":" + id + ":" + (commander?.id || ""),
+    preferenceStorageKey = cardPreferenceStorageKey(ownerKey,scope,id,commander?.oracle_id || commander?.id || ""),
     contextKey = JSON.stringify({
       deck,
       collections,
       budget,
+      budgetMeaning,
       bracket,
       ownedOnly,
     });
+  const budgetThread = useRef<BudgetThreadContext | null>(null);
+  const documentsRef=useRef(documents);documentsRef.current=documents;
+  const preferenceRaw=useRef<string|null>(null);
+  const currentSelection=useRef(selectionKey);currentSelection.current=selectionKey;
+  const preferenceBaseRef=useRef(preferenceBase);preferenceBaseRef.current=preferenceBase;
+  const workingRef=useRef(working);workingRef.current=working;
+  const adoptChoices = useCallback((raw:string|null,notice:string)=>{
+    preferenceRaw.current=raw;setPreferenceBase(raw);setClearedPreferences(null);setSelected([]);
+    setTurns(all=>all.map(t=>t.reviewState==="pending"?{...t,reviewState:"stale"}:t));
+    if(workingRef.current==="chat"){pending.current?.abort();pending.current=null;epoch.current++;setWorking(null);}
+    try{const value=raw?JSON.parse(raw):{version:1,preferences:[],ignoreTranscriptRejections:false};if(value.version!==1||!Array.isArray(value.preferences))throw Error();setPreferences(normalizePreferences(value.preferences));setIgnoreTranscriptRejections(value.ignoreTranscriptRejections===true);setPreferenceLoadFailed(false);setNotice(notice);}catch{setPreferenceLoadFailed(true);setNotice("Remembered choices changed but could not be read. The stored value has been preserved.");}
+  },[]);
+  function currentChoices(){try{const raw=localStorage.getItem(preferenceStorageKey);if(raw!==preferenceBaseRef.current){adoptChoices(raw,"Another tab changed this deck's choices. Latest choices loaded; repeat your action. Your draft is retained.");return false;}return true;}catch{setError("Remembered choices could not be checked. Keep this page open and restore device storage before retrying.");return false;}}
+
   const activeReview = [...turns]
     .reverse()
     .find((t) => t.review && t.reviewState === "pending")?.review;
@@ -83,26 +109,42 @@ export default function DeckAIChat({
   }, []);
   useEffect(() => {
     pending.current?.abort();
+    pending.current = null;
     epoch.current++;
     setWorking(null);
-    let saved: {turns?: Turn[]; budget?: string; bracket?: number; ownedOnly?: boolean} = {};
+    let saved: {turns?: Turn[]; budget?: string; budgetMeaning?: BudgetMeaning; bracket?: number; ownedOnly?: boolean; draft?: string; budgetContext?: BudgetThreadContext} = {};
     try { saved = JSON.parse(sessionStorage.getItem("cardchasm-ai-thread-v1:" + selectionKey) || "{}"); } catch { /* In-memory conversation still works. */ }
+    const storedContext=saved.budgetContext;
+    budgetThread.current=storedContext && Number.isFinite(storedContext.cap) && (storedContext.meaning === "deck" || storedContext.meaning === "purchases") && Number.isInteger(storedContext.start) && storedContext.start >= 0 && storedContext.start < (saved.turns?.length || 0) ? storedContext : saved.turns?.length ? {cap:Number(saved.budget)||25,meaning:saved.budgetMeaning === "deck"?"deck":"purchases",start:0}:null;
     setTurns(Array.isArray(saved.turns) ? saved.turns.filter(t => (t.role === "user" || t.role === "assistant") && typeof t.content === "string").slice(0, MAX_CONVERSATION_TURNS).map(t => ({...t, reviewState: t.reviewState === "pending" ? "stale" : t.reviewState})) : []);
     setBudget(typeof saved.budget === "string" ? saved.budget : "25");
+    setBudgetMeaning(saved.budgetMeaning === "deck" ? "deck" : "purchases");
     setBracket(typeof saved.bracket === "number" ? saved.bracket : 3);
     setOwnedOnly(saved.ownedOnly === true);
-    setMessage("");
+    setPreferenceLoadFailed(false);
+    try {
+      const stored = localStorage.getItem(preferenceStorageKey);preferenceRaw.current=stored;setPreferenceBase(stored);
+      if (stored) { const value=JSON.parse(stored); if(value.version !== 1 || !Array.isArray(value.preferences)) throw Error("Unsupported remembered-choice storage"); setPreferences(normalizePreferences(value.preferences));setIgnoreTranscriptRejections(value.ignoreTranscriptRejections === true); }
+      else {
+        const known=[...documentsRef.current.flatMap(d=>d.entries.map(e=>e.card)),...(saved.turns||[]).flatMap(t=>[...(t.cards||[]),...(t.review?.pairs||[]).map(p=>p.add)])];
+        const migrated=migrateCardPreferences(saved.turns||[],known,documentsRef.current.find(d=>d.id===id)?.entries.map(e=>e.card)||[]);
+        setPreferences(migrated);setIgnoreTranscriptRejections(false);
+      }
+    } catch {setPreferenceLoadFailed(true);setPreferences([]);setIgnoreTranscriptRejections(false);setNotice("Remembered choices could not be loaded; the original stored value has not been deliberately cleared.");}
+    setClearedPreferences(null);
+    setMessage(typeof saved.draft === "string" ? saved.draft.slice(0,2000) : "");
     setLoadedKey(selectionKey);
     setSelected([]);
     setNotice("");
     setError("");
-  }, [selectionKey]);
+  }, [selectionKey, preferenceStorageKey, id]);
   useEffect(() => {
     if (loadedKey !== selectionKey) return;
-    try { sessionStorage.setItem("cardchasm-ai-thread-v1:" + selectionKey, JSON.stringify({turns, budget, bracket, ownedOnly})); } catch { setNotice("Conversation storage is unavailable; keep this page open to retain the current thread."); }
-  }, [loadedKey, selectionKey, turns, budget, bracket, ownedOnly]);
+    try { sessionStorage.setItem("cardchasm-ai-thread-v1:" + selectionKey, JSON.stringify({turns, budget, budgetMeaning, bracket, ownedOnly, draft:message,budgetContext:budgetThread.current})); } catch { setNotice("Conversation storage is unavailable; keep this page open to retain the current thread."); }
+  }, [loadedKey, selectionKey, turns, budget, budgetMeaning, bracket, ownedOnly, message]);
   useEffect(() => {
     pending.current?.abort();
+    pending.current = null;
     epoch.current++;
     setWorking(null);
     setSelected([]);
@@ -112,8 +154,34 @@ export default function DeckAIChat({
       ),
     );
   }, [contextKey]);
+  useEffect(()=>{
+    function changed(event:StorageEvent){if(event.storageArea===localStorage&&event.key===preferenceStorageKey)adoptChoices(localStorage.getItem(preferenceStorageKey),"Remembered choices changed in another tab. Current choices loaded; ask for a fresh review.");}
+    window.addEventListener("storage",changed);return()=>window.removeEventListener("storage",changed);
+  },[preferenceStorageKey,adoptChoices]);
+  useEffect(() => {
+    if (loadedKey !== selectionKey || preferenceLoadFailed) return;
+    let cancelled=false;
+    void withChoiceLock(preferenceStorageKey,()=>{if(cancelled||currentSelection.current!==selectionKey)return;const actual=localStorage.getItem(preferenceStorageKey);if(actual!==preferenceBase){adoptChoices(actual,"Current choices synchronized with another tab. Your draft is retained; review current choices before requesting again.");return;}const next=JSON.stringify({version:1,preferences,ignoreTranscriptRejections});if(next!==actual){localStorage.setItem(preferenceStorageKey,next);preferenceRaw.current=next;setPreferenceBase(next);}}).catch(()=>{if(!cancelled)setNotice("Card choices could not be saved on this device. Keep this page open; durable memory is unavailable.");});
+    return()=>{cancelled=true;};
+  },[loadedKey,selectionKey,preferenceStorageKey,preferences,ignoreTranscriptRejections,preferenceLoadFailed,preferenceBase,adoptChoices]);
+  function remember(card:Card,state:CardPreference["state"]) {
+    if(!navigator.locks&&!currentChoices())return;
+    const key=preferenceStorageKey,selection=selectionKey;
+    void withChoiceLock(key,()=>{const raw=localStorage.getItem(key),value=raw?JSON.parse(raw):{version:1,preferences:[],ignoreTranscriptRejections:false};if(value.version!==1||!Array.isArray(value.preferences))throw Error("Stored choices could not be read; clear explicitly before editing.");const next=JSON.stringify({version:1,preferences:setCardPreference(normalizePreferences(value.preferences),card,state),ignoreTranscriptRejections:value.ignoreTranscriptRejections===true});localStorage.setItem(key,next);if(currentSelection.current===selection)adoptChoices(next,"Card choice saved for this deck.");}).catch(e=>{if(currentSelection.current===selection)setError((e as Error).message);});
+  }
+  function clearChoices(){
+    if(!navigator.locks&&!currentChoices())return;
+    const key=preferenceStorageKey,selection=selectionKey;
+    void withChoiceLock(key,()=>{const raw=localStorage.getItem(key);let value={preferences:[] as CardPreference[],ignoreTranscriptRejections:false};try{if(raw)value=JSON.parse(raw);}catch{/* Preserve the exact corrupt value for explicit undo. */}const next=JSON.stringify({version:1,preferences:[],ignoreTranscriptRejections:true});localStorage.setItem(key,next);if(currentSelection.current===selection){adoptChoices(next,"Remembered choices cleared explicitly.");setClearedPreferences({preferences:normalizePreferences(value.preferences),ignore:value.ignoreTranscriptRejections===true,raw:raw||undefined,afterRaw:next});}}).catch(e=>{if(currentSelection.current===selection)setError((e as Error).message);});
+  }
+  function undoClear(){
+    const prior=clearedPreferences;if(!prior)return;
+    const key=preferenceStorageKey,selection=selectionKey;
+    void withChoiceLock(key,()=>{const raw=localStorage.getItem(key);if(raw!==prior.afterRaw){if(currentSelection.current===selection)adoptChoices(raw,"Choices changed after the clear; undo would overwrite a newer decision. Current choices loaded.");return;}const next=prior.raw||JSON.stringify({version:1,preferences:prior.preferences,ignoreTranscriptRejections:prior.ignore});localStorage.setItem(key,next);if(currentSelection.current===selection)adoptChoices(next,"Earlier choices restored.");}).catch(e=>{if(currentSelection.current===selection)setError((e as Error).message);});
+  }
   function cancel() {
     pending.current?.abort();
+    pending.current = null;
     epoch.current++;
     setWorking(null);
     setNotice(
@@ -121,7 +189,15 @@ export default function DeckAIChat({
     );
   }
   async function send() {
-    if (!message.trim() || !status?.enabled || working || turns.length >= MAX_CONVERSATION_TURNS - 1) return;
+    if (!message.trim() || !status?.enabled || working || pending.current || turns.length >= MAX_CONVERSATION_TURNS - 1) return;
+    if(!currentChoices())return;
+    if(preferenceLoadFailed) {setError("Stored card choices could not be read. Clear remembered choices explicitly before requesting recommendations.");return;}
+    const conflict = budgetConflict(message, Number(budget), budgetMeaning);
+    if (conflict) { setError(conflict); return; }
+    const priorAssistant=[...turns].reverse().find(t=>t.role==='assistant');
+    let remembered=preferences;
+    try {remembered=messagePreferences(preferences,message,[...documents.flatMap(d=>d.entries.map(e=>e.card)),...turns.flatMap(t=>[...(t.cards||[]),...(t.review?.pairs||[]).map(p=>p.add)])],priorAssistant?.review?.pairs.map(p=>p.add)||priorAssistant?.cards||[]);} catch(e) {setError((e as Error).message);return;}
+    setPreferences(remembered);
     const token = ++epoch.current,
       c = new AbortController();
     pending.current = c;
@@ -134,7 +210,9 @@ export default function DeckAIChat({
           ? { ...t, reviewState: "stale" as const }
           : t,
       ),
-      next: Turn[] = [...prior, { role: "user", content: message.trim() }];
+      next: Turn[] = prior[prior.length-1]?.role === "user" && prior[prior.length-1]?.content === message.trim() ? prior : [...prior, { role: "user", content: message.trim() }];
+    const previousBudget = budgetThread.current;
+    budgetThread.current={cap:Number(budget),meaning:budgetMeaning,start:previousBudget && previousBudget.cap === Number(budget) && previousBudget.meaning === budgetMeaning ? previousBudget.start : previousBudget ? next.length-1 : 0};
     setTurns(next);
     try {
       const reply = await api<{
@@ -143,6 +221,7 @@ export default function DeckAIChat({
         review: AIReview | null;
         source: string;
         noSwapReason?: string | null;
+        cardPreferences?: CardPreference[];
       }>(
         "/deck-ai/chat",
         {
@@ -152,6 +231,10 @@ export default function DeckAIChat({
             : { deck, collections }),
           commanderId: !deck ? commander?.id : undefined,
           budget: Number(budget),
+          budgetMeaning,
+          budgetContextStart:budgetThread.current.start,
+          cardPreferences: remembered,
+          ignoreTranscriptRejections,
           bracket: deck?.commanderBracket || bracket,
           ownedOnly,
           turns: providerTurns(next),
@@ -160,6 +243,10 @@ export default function DeckAIChat({
         c.signal,
       );
       if (!alive.current || token !== epoch.current) return;
+      let returned=reply.cardPreferences ? normalizePreferences(reply.cardPreferences) : remembered;
+      const suggested=reply.review?.pairs.map(p=>p.add)||reply.cards;
+      for(const card of suggested) if(!deck?.entries.some(e=>(e.card.oracle_id||e.card.id)===(card.oracle_id||card.id)) && preferenceFor(returned,card)?.state!=='rejected') returned=setCardPreference(returned,card,"suggested");
+      setPreferences(returned);
       setTurns([
         ...next,
         {
@@ -177,11 +264,11 @@ export default function DeckAIChat({
       if (alive.current && token === epoch.current && !isAbortError(e))
         setError((e as Error).message);
     } finally {
-      if (alive.current && token === epoch.current) setWorking(null);
+      if (alive.current && token === epoch.current) {pending.current = null;setWorking(null);}
     }
   }
   async function apply() {
-    if (!activeReview || !deck || !selected.length) return;
+    if (!activeReview || !deck || !selected.length || pending.current) return;
     const token = ++epoch.current,
       c = new AbortController();
     pending.current = c;
@@ -229,9 +316,9 @@ export default function DeckAIChat({
       }
     } catch (e) {
       if (alive.current && token === epoch.current && !isAbortError(e))
-        setError((e as Error).message);
+        setError(e instanceof NetworkError ? "Apply response could not be confirmed. Keep this selection and retry; the server can return the same result without applying it twice. If the server restarted, refresh the deck before requesting another review." : (e as Error).message);
     } finally {
-      if (alive.current && token === epoch.current) setWorking(null);
+      if (alive.current && token === epoch.current) {pending.current = null;setWorking(null);}
     }
   }
   const draft = message.trim()
@@ -302,16 +389,18 @@ export default function DeckAIChat({
         )}
         <details className="ai-constraints">
           <summary>
-            Constraints · ${budget} ·{" "}
+            Constraints · ${budget} · {budgetMeaning === "deck" ? "Total deck incl. commander" : "New purchases"} ·{" "}
             {ownedOnly ? "Owned only" : "All additions"}
             {deck?.commanderBracket
               ? ` · Bracket ${deck.commanderBracket}`
               : ""}{" "}
             · Edit
           </summary>
+          <label>Budget applies to<select aria-label="AI budget meaning" value={budgetMeaning} onChange={e => setBudgetMeaning(e.target.value as BudgetMeaning)}><option value="purchases">New purchases only</option><option value="deck">Total deck (including commander and lands)</option></select></label>
+          <p>{budgetMeaning === "deck" ? "Every selected printing counts, including owned cards, commander and lands. Unknown quotes block swaps; selected subsets are rechecked before saving." : "Only needed new copies count. Cuts provide no sale credit; owned copies cost $0."}</p>
           <div className="ai-context-row">
             <label>
-              New-purchase budget (USD)
+              Budget cap (USD)
               <input
                 aria-label="AI purchase budget"
                 type="number"
@@ -360,6 +449,14 @@ export default function DeckAIChat({
         and the spending guard stay in force.
       </p>
       <p className="muted">This deck’s conversation is retained in this browser tab through reloads. Up to 80 messages are sent with the latest deck state. Prior assistant text is limited to 2,000 characters per message; review outcomes are retained. Pending reviews require a fresh request after reload.</p>
+      <details className="ai-card-preferences"><summary>Remembered card choices for this deck · {preferences.length}</summary>
+        <p>Latest choices are saved on this device for this deck/account. Rejected and previously suggested cards are excluded from new recommendations by Oracle identity. Discussion can still explain them. Allow again explicitly reverses an exclusion.</p>
+        {preferenceLoadFailed&&<p role="alert">Stored choices could not be read and have not been overwritten. Clear explicitly to start again.</p>}
+        {preferences.map(pref=><div key={pref.oracleId||pref.cardId}><span>{pref.name} · {pref.state === "allowed" ? "Allowed again" : pref.state === "rejected" ? "Rejected" : "Previously suggested"}</span><button disabled={!!working} onClick={()=>remember({id:pref.cardId,oracle_id:pref.oracleId,name:pref.name},pref.state==="allowed"?"rejected":"allowed")}>{pref.state === "allowed" ? "Reject " : "Allow again "}{pref.name}</button></div>)}
+        {ignoreTranscriptRejections&&<p>Earlier transcript exclusions were explicitly cleared; new choices still apply.</p>}
+        <button disabled={!!working||(!preferences.length&&!preferenceLoadFailed)} onClick={clearChoices}>Clear remembered choices</button>
+        {clearedPreferences&&<button disabled={!!working} onClick={undoClear}>Undo clear remembered choices</button>}
+      </details>
       <div className="ai-transcript" role="log" aria-label="Deck conversation">
         {turns.map((t, i) => (
           <div className={"ai-turn " + t.role} key={i}>
@@ -385,6 +482,7 @@ export default function DeckAIChat({
                   onApply={() => void apply()}
                   onInspect={onInspect}
                 />
+                {t.review.pairs.map(p=><button key={p.id} disabled={!!working} onClick={()=>remember(p.add,"rejected")}>Reject suggestion {p.add.name}</button>)}
               </>
             ) : (
               <>
@@ -413,6 +511,7 @@ export default function DeckAIChat({
                         <span>{c.name}</span>
                       </button>
                     ))}
+                    {t.cards.filter(c=>!deck?.entries.some(e=>(e.card.oracle_id||e.card.id)===(c.oracle_id||c.id))).map(c=><button key={"reject:"+c.id} disabled={!!working} onClick={()=>remember(c,"rejected")}>Reject suggestion {c.name}</button>)}
                   </div>
                 )}
               </>
@@ -489,6 +588,7 @@ export default function DeckAIChat({
           <button
             disabled={!!working}
             onClick={() => {
+              budgetThread.current=null;
               setTurns([]);
               setSelected([]);
               setNotice("New conversation.");

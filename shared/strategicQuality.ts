@@ -1,4 +1,5 @@
-export const STRATEGIC_QUALITY_VERSION = "2026-10-20.1";
+import { deploymentCost } from "./deploymentCost";
+export const STRATEGIC_QUALITY_VERSION = "2026-10-21.6";
 import type { Card } from "./model";
 import { frontText } from "./cardFunction";
 import { manaProfile } from "./mtgCardFunctions";
@@ -9,6 +10,7 @@ export function strategicProfile(
   commander: Card,
   bracket = 3,
   explicitManaValue = false,
+  context: Card[] = [],
 ) {
   const text = frontText(card),
     cmd = frontText(commander),
@@ -66,20 +68,9 @@ export function strategicProfile(
     /prevent all combat damage[^.\n]*attacking creatures you control/i.test(
       text,
     );
-  const notes: string[] = [];
+  const payments = deploymentCost(card, undefined, context);
+  const notes: string[] = [...payments.notes];
   let adjustment = 0;
-  if (equipment && equipCost !== null) {
-    adjustment -= Math.min(12, equipCost * 4);
-    notes.push(
-      `Cast plus first equip needs at least ${mv + equipCost} mana; equip is a separate setup action.`,
-    );
-  }
-  if (activationCost > 0) {
-    adjustment -= Math.min(8, activationCost * 2);
-    notes.push(
-      `A non-mana activated ability requires ${activationCost} additional mana; alternatives and nonmana costs need review.`,
-    );
-  }
   if (reusableTap && !/\bhaste\b/i.test(text))
     notes.push(
       "Creature tap abilities usually wait until a later turn unless haste is supplied.",
@@ -136,14 +127,15 @@ export function strategicProfile(
     adjustment,
     castMana: mv,
     firstEquipMana: equipCost,
-    firstDeploymentMana: equipment && equipCost !== null ? mv + equipCost : mv,
+    firstDeploymentMana: equipment ? mv + payments.equipMana : mv,
     activationMana: activationCost,
     attackTrigger,
     combatDamageTrigger,
     singleEntryDraw,
     symmetricExposure,
     combatProtection,
-    notes,
+    deployment: payments,
+    notes: [...new Set(notes)],
   };
 }
 

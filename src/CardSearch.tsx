@@ -1,3 +1,4 @@
+import {reproductionReason} from "../shared/deckEligibility";
 import { matchesOwnedSearch, sortOwnedSearch } from "../shared/ownedCardSearch";
 import SearchFilters from "./SearchFilters";
 import {
@@ -834,6 +835,7 @@ export default function CardSearch({
                     </span>
                   </span>
                   <strong className="result-name">{card.name}</strong>
+                  {reproductionReason(card) && <small>Non-tournament reproduction · casual agreement required</small>}
                   {view === "list" && (
                     <small>
                       {card.mana_cost} · {card.type_line} · {owned(card)} owned

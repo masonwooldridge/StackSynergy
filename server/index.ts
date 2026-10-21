@@ -1,3 +1,5 @@
+import {cardDataStamp} from "../shared/cardDataProvenance.ts";
+import {CardDataError} from "./cardProvider.ts";
 import { cardSearchPath } from "../shared/cardSearchRequest";
 import {InitialTestBudget} from './aiBudget.ts';
 import {resolve,dirname} from 'node:path';
@@ -165,12 +167,15 @@ app.post("/api/logout", (req, res) => {
   res.clearCookie("session");
   res.json({ ok: true });
 });
-app.get("/api/catalog/creature-types",async (_req,res)=>{try{res.json(await scryfall("/catalog/creature-types"));}catch{res.status(502).json({error:"Creature-type catalog unavailable."});}});
+function cardRequestSignal(req:express.Request,res:express.Response){const controller=new AbortController();req.on("aborted",()=>controller.abort());res.on("close",()=>{if(!res.writableEnded)controller.abort();});return controller.signal;}
+function sendCardError(res:express.Response,error:unknown){if(res.destroyed)return;const e=error as Error;if(error instanceof CardDataError){if(error.retryAfter)res.setHeader("Retry-After",String(error.retryAfter));res.status(error.status).json({error:e.message,cardDataFailure:true,retryAfterSeconds:error.retryAfter});}else res.status(502).json({error:e.message});}
+app.get("/api/catalog/creature-types",async (_req,res)=>{try{res.json(await scryfall("/catalog/creature-types"));}catch(e){sendCardError(res,e);}});
 app.get("/api/sets", async (_req, res) => {
   try { res.json(await scryfall("/sets")); }
-  catch(e) { res.status(502).json({error:(e as Error).message}); }
+  catch(e) { sendCardError(res,e); }
 });
 app.get("/api/cards", async (req, res) => {
+  const signal=cardRequestSignal(req,res);const stamps:import("../shared/cardDataProvenance.ts").CardDataStamp[]=[];const readCard=async(path:string)=>{const data=await scryfall(path,signal);const stamp=cardDataStamp(data);if(stamp)stamps.push(stamp);return data;};
   try {
     const q = String(req.query.q || "").trim();
     if (!q || q.length > 1000) throw Error("Enter a search query.");
@@ -191,18 +196,19 @@ app.get("/api/cards", async (req, res) => {
       const base = path.replace(/&page=\d+$/, "");
       const data = await printingPages(
         async (n) =>
-          (await scryfall(
+          (await readCard(
             `${base}&page=${n}`,
           )) as import("../shared/printingPages.ts").CardPage,
       );
       res.json({ data, has_more: false });
-    } else res.json(await scryfall(path));
+    } else res.json(await readCard(path));
   } catch (e) {
     if (String(req.query.mode || "search") === "search" && (e as Error).message === "Card provider returned 404") { res.json({data:[],has_more:false}); return; }
-    res.status(502).json({ error: (e as Error).message });
+    sendCardError(res,e);
   }
 });
 app.get("/api/suggestions", async (req, res) => {
+  const signal=cardRequestSignal(req,res);const stamps:import("../shared/cardDataProvenance.ts").CardDataStamp[]=[];const readCard=async(path:string)=>{const data=await scryfall(path,signal);const stamp=cardDataStamp(data);if(stamp)stamps.push(stamp);return data;};
   try {
     const ids = String(req.query.commanders || "").split(",");
     if (ids.length < 1 || ids.length > 2 || ids.some((id) => !z.string().uuid().safeParse(id).success)) {
@@ -215,7 +221,7 @@ app.get("/api/suggestions", async (req, res) => {
     const strategy = String(req.query.strategy || "auto") as Strategy;
     if (!["auto", "any", ...mechanics].includes(strategy)) { res.status(400).json({ error: "Unsupported strategy." });return; }
     const commanders = [];
-    for (const id of ids) commanders.push(await scryfall("/cards/" + id) as import("../shared/model.ts").Card);
+    for (const id of ids) commanders.push(await readCard("/cards/" + id) as import("../shared/model.ts").Card);
     const deck: Document = { id: "scope", kind: "deck", name: "scope", format, notes: "", revision: 0, entries: commanders.map((card) => newEntry(card, "commander")) };
     const scope = deckSearchTerms(deck, "mainboard", req.query.rules !== "0").join(" ");
     const mechanic = focusMechanic(commanders, strategy), cards = new Map<string, import("../shared/model.ts").Card>(), unavailable: string[] = [];
@@ -224,16 +230,16 @@ app.get("/api/suggestions", async (req, res) => {
       const query = role === "synergy" ? mechanic && mechanicQueries[mechanic] : roleQueries[role];
       if (!query) continue;
       try {
-        const page = await scryfall(`/cards/search?q=${encodeURIComponent(query + " " + scope+" game:paper -t:attraction -t:sticker -t:contraption")}&unique=cards&order=cmc&dir=asc&page=1`) as { data: import("../shared/model.ts").Card[] };
+        const page = await readCard(`/cards/search?q=${encodeURIComponent(query + " " + scope+" game:paper -t:attraction -t:sticker -t:contraption")}&unique=cards&order=cmc&dir=asc&page=1`) as { data: import("../shared/model.ts").Card[] };
         if (!Array.isArray(page.data)) throw Error("Card facts unavailable.");
         for (const card of page.data.slice(0, 60)) cards.set(card.oracle_id || card.id, card);
         failures = 0;
-      } catch { unavailable.push(role);if (++failures >= 2 && !cards.size) break; }
+      } catch (e) { if(e instanceof CardDataError && e.message!=="Card provider returned 404")throw e;unavailable.push(role);if (++failures >= 2 && !cards.size) break; }
     }
-    for(const profile of commanderCandidateQueries(commanders)){try{const page=await scryfall(`/cards/search?q=${encodeURIComponent(profile.query+' '+scope+' game:paper -t:attraction -t:sticker -t:contraption')}&unique=cards&order=cmc&dir=asc&page=1`) as {data:import('../shared/model.ts').Card[]};for(const card of page.data)if(profile.name!=='Reviewed commander recommendations'||evidenceFor(commanders)?.cards.includes(card.name))cards.set(card.oracle_id||card.id,card);}catch{unavailable.push(profile.name);}}
+    for(const profile of commanderCandidateQueries(commanders)){try{const page=await readCard(`/cards/search?q=${encodeURIComponent(profile.query+' '+scope+' game:paper -t:attraction -t:sticker -t:contraption')}&unique=cards&order=cmc&dir=asc&page=1`) as {data:import('../shared/model.ts').Card[]};for(const card of page.data)if(profile.name!=='Reviewed commander recommendations'||evidenceFor(commanders)?.cards.includes(card.name))cards.set(card.oracle_id||card.id,card);}catch(e){if(e instanceof CardDataError && e.message!=="Card provider returned 404")throw e;unavailable.push(profile.name);}}
     if (!cards.size) { res.status(502).json({ error: "Card suggestions are unavailable. Try again later or use card search / pasted deck import." });return; }
-    const ranked=rankCommanderCards([...cards.values()],commanders);res.json({cards:ranked.map(r=>r.card),rankings:ranked.map(r=>({id:r.card.id,score:r.score,reasons:r.reasons})),unavailable,source:"scryfall",rankingSource:evidenceFor(commanders)?"StackSynergy rules with dated, manually reviewed EDHREC examples; not live statistics":"StackSynergy rules; no reviewed EDHREC profile for this commander",commanderEvidence:evidenceFor(commanders)?{reviewedAt:evidenceReviewedAt,url:evidenceUrl(evidenceFor(commanders)!.slug),theme:evidenceFor(commanders)!.theme}:null});
-  } catch (error) { res.status(502).json({ error: (error as Error).message }); }
+    const ranked=rankCommanderCards([...cards.values()],commanders);res.json({cardData:stamps.length?{source:"Scryfall mixed cache/response",retrievedAt:stamps.map(s=>s.retrievedAt).sort()[0]}:undefined,cards:ranked.map(r=>r.card),rankings:ranked.map(r=>({id:r.card.id,score:r.score,reasons:r.reasons})),unavailable,source:"scryfall",rankingSource:evidenceFor(commanders)?"StackSynergy rules with dated, manually reviewed EDHREC examples; not live statistics":"StackSynergy rules; no reviewed EDHREC profile for this commander",commanderEvidence:evidenceFor(commanders)?{reviewedAt:evidenceReviewedAt,url:evidenceUrl(evidenceFor(commanders)!.slug),theme:evidenceFor(commanders)!.theme}:null});
+  } catch (error) { sendCardError(res,error); }
 });
 
 installDeckAI(app,{

@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { Card, Document } from "../shared/model";
 import {
   assertDiscussionFacts,
+  assertDiscussionAdditions,
   readableAIReply,
 } from "../shared/aiResponseSafety";
 const commander = {
@@ -61,4 +62,29 @@ it("removes internal identifiers from user-facing prose without changing structu
   expect(readableAIReply("Lightning Runner (" + id + ") is a creature.")).toBe(
     "Lightning Runner is a creature.",
   );
+});
+
+it("blocks varied affirmative re-recommendation phrases but permits explanation and negation", () => {
+  const candidate = { id: crypto.randomUUID(), name: "Remembered Card" };
+  for (const reply of [
+    "I recommend adding Remembered Card.",
+    "You could include Remembered Card.",
+    "Consider Remembered Card.",
+    "Another option is Remembered Card.",
+  ])
+    expect(() =>
+      assertDiscussionAdditions(reply, [candidate], undefined, [
+        "remembered card",
+      ]),
+    ).toThrow("rejected");
+  for (const reply of [
+    "Do not add Remembered Card.",
+    "I would not recommend adding Remembered Card.",
+    "Remembered Card was rejected; its effect still draws cards.",
+  ])
+    expect(() =>
+      assertDiscussionAdditions(reply, [candidate], undefined, [
+        "remembered card",
+      ]),
+    ).not.toThrow();
 });

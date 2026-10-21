@@ -4,6 +4,8 @@ import { commanderSignals } from "./commanderRelevance";
 import { frontFaceType, isLandSlot } from "./landAllocation";
 export function packageTargets(commander: Card): Record<string, number> {
   const s = commanderSignals([commander]);
+  if (s.castTypes.includes("Enchantment")) return { "Enchantment spells": 28 };
+  if (s.castTypes.includes("Artifact")) return { "Artifact spells": 24 };
   if (s.energy && s.copyCreature)
     return { "Energy engines": 3, "Copy value": 4, "Attack access": 2 };
   if (s.typal.length) return { "Typal fuel": 8, "Typal engines": 3 };
@@ -19,6 +21,8 @@ export function packageMatches(card: Card, commander: Card): string[] {
     creature = /Creature/.test(type),
     permanent = /Creature|Artifact|Enchantment|Planeswalker|Battle/.test(type),
     roles: string[] = [];
+  if (s.castTypes.includes("Enchantment") && /\bEnchantment\b/.test(type)) roles.push("Enchantment spells");
+  if (s.castTypes.includes("Artifact") && /\bArtifact\b/.test(type)) roles.push("Artifact spells");
   if (
     s.energy &&
     /\{E\}|energy counter/i.test(text) &&

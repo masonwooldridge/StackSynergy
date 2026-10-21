@@ -1,3 +1,4 @@
+export class CardDataUnavailable extends Error { retryAfterSeconds:number;constructor(message:string,retryAfterSeconds=0){super(message);this.retryAfterSeconds=retryAfterSeconds;} }
 export class NetworkError extends Error {}
 export const isAbortError=(error:unknown)=>!!error&&typeof error==="object"&&"name" in error&&error.name==="AbortError";
 export async function api<T>(
@@ -29,7 +30,7 @@ export async function api<T>(
       "The server is restarting or unavailable. Please refresh and try again.",
     );
   }
-  if (!r.ok) throw Error(data.error || "Request failed");
+  if (!r.ok) {if(data.cardDataFailure||r.status===429)throw new CardDataUnavailable(data.error||"Card data temporarily unavailable; retry later.",Number(data.retryAfterSeconds||r.headers.get("Retry-After"))||0);throw Error(data.error || "Request failed");}
   return data;
 }
 export function download(name: string, text: string, type = "text/plain") {

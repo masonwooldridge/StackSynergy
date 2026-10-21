@@ -1,3 +1,4 @@
+import { selectedReviewBudget } from "../shared/assistantBudget";
 import {
   hasCardCriterion,
   hasIncreaseTarget,
@@ -12,6 +13,9 @@ import type { UpgradePair } from "../shared/deckUpgrade";
 export interface AIReview {
   id: string;
   pairs: UpgradePair[];
+  budgetMeaning?: "purchases" | "deck";
+  totalBudget?: number;
+  deckValue?: number | null;
   budget: number;
   purchase: number;
   count: number;
@@ -110,9 +114,8 @@ export default function AISwapReview({
     return () => clearTimeout(timer);
   }, [review.expiresAt]);
   const active = state === "pending" && !expired,
-    total = review.pairs
-      .filter((p) => selected.includes(p.id))
-      .reduce((n, p) => n + p.purchase, 0);
+    selectedBudget = selectedReviewBudget(review, selected),
+    total = selectedBudget.purchase;
   const binding =
     review.constraints && hasCardCriterion(review.constraints)
       ? review.constraints
@@ -264,9 +267,12 @@ export default function AISwapReview({
             </p>
           )}
           <p>
-            {selected.length} selected · {review.count} cards after swaps · $
-            {total.toFixed(2)} / ${review.budget.toFixed(2)} new purchases
+            {selected.length} selected · {review.count} cards after swaps ·
+            {review.budgetMeaning === "deck"
+              ? `Total deck cap $${review.totalBudget?.toFixed(2)} including commander; full proposed deck $${review.deckValue?.toFixed(2) ?? "unknown"}. Selected deck $${selectedBudget.deckValue?.toFixed(2) ?? "unknown"}; server rechecks on apply. New purchases $${total.toFixed(2)}.`
+              : `${total.toFixed(2)} / $${review.budget.toFixed(2)} new purchases`}
           </p>
+          {selectedBudget.reason && <p role="alert">{selectedBudget.reason}</p>}
           <p className="builder-help">
             Cuts provide no sale credit. USD estimates may be cached up to 24
             hours; taxes and shipping excluded. Review expires{" "}
@@ -278,6 +284,7 @@ export default function AISwapReview({
               working ||
               !selected.length ||
               !countValid ||
+              !selectedBudget.valid ||
               review.pairs.some(
                 (p) => !p.cut && !deck?.entries.some((e) => e.id === p.cutId),
               )

@@ -551,7 +551,7 @@ export default function App() {
             <HomeScreen
               documents={visible}
               signedIn={libraryMode === "account"}
-              onNavigate={navigate}
+              onNavigate={(next) => { navigate(next); if(next === "Assistant") setAssistantMode("build"); }}
               onOpen={openDocument}
               onCreate={beginCreate}
             />
@@ -859,6 +859,7 @@ export default function App() {
               </div>
               <div hidden={assistantMode !== "upgrade"}>
                 <DeckUpgrader
+                  storageScope={libraryMode + ":" + (user || "guest")}
                   key={"upgrade:" + libraryMode + ":" + (user || "guest")}
                   documents={docs}
                   initialDeckId={selected}

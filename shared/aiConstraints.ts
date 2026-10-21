@@ -373,6 +373,23 @@ export function parseAIRequest(
       request.types = request.types.filter((t) => t !== request.impliedType);
       request.impliedType = undefined;
     }
+    const allowedTypes = text
+      .split(/[.!?;,\n]|\bbut\b/)
+      .flatMap((clause) =>
+        /\b(?:not|never|don.t|do not)\s+(?:allow|permit)\b/.test(clause)
+          ? []
+          : [
+              ...clause.matchAll(
+                new RegExp(
+                  "\\b(?:allow|permit)\\s+(" + typeWords + ")\\b",
+                  "gi",
+                ),
+              ),
+            ].flatMap((m) => types(m[1])),
+      );
+    request.excludedTypes = request.excludedTypes.filter(
+      (t) => !allowedTypes.includes(t),
+    );
     const exclusion = new RegExp(
       "(?:not|no|non-?)\\s*(" + typeWords + ")",
       "gi",
@@ -381,10 +398,6 @@ export function parseAIRequest(
       request.excludedTypes = [
         ...new Set([...request.excludedTypes, ...types(m[1])]),
       ];
-    if (request.types.some((t) => request.excludedTypes.includes(t)))
-      request.errors.push(
-        "The requested type is also excluded. Clarify the type before requesting swaps.",
-      );
     const price =
       /(?:budget(?: is| of)?|under|up to|at most|max(?:imum)?|no more than)\s*\$\s*(\d+(?:\.\d{1,2})?)(\s*(?:each|per card|apiece))?/gi;
     for (const m of text.matchAll(price)) {
@@ -404,6 +417,15 @@ export function parseAIRequest(
     else if (/allow (?:buying|purchases)|buy cards instead/i.test(text))
       request.ownedOnly = false;
   }
+  request.errors = request.errors.filter(
+    (e) =>
+      e !==
+      "The requested type is also excluded. Clarify the type before requesting swaps.",
+  );
+  if (request.types.some((t) => request.excludedTypes.includes(t)))
+    request.errors.push(
+      "The requested type is also excluded. Clarify the type before requesting swaps.",
+    );
   return request;
 }
 export function matchesAIRequest(card: Card, c: CardCriterion) {
@@ -453,7 +475,10 @@ export function matchesAIRequest(card: Card, c: CardCriterion) {
       ? card.cmc <= c.manaValue
       : card.cmc === c.manaValue;
 }
-export function requestSummary(r: AIRequest) {
+export function requestSummary(
+  r: AIRequest,
+  budgetMeaning: "purchases" | "deck" = "purchases",
+) {
   const cost =
     r.manaValue === undefined
       ? ""
@@ -490,7 +515,9 @@ export function requestSummary(r: AIRequest) {
         : "",
     r.ownedOnly ? "owned additions only" : "",
     r.purchaseBudget !== undefined
-      ? "new-purchase cap $" + r.purchaseBudget.toFixed(2)
+      ? (budgetMeaning === "deck"
+          ? "total deck cap including commander $"
+          : "new-purchase cap $") + r.purchaseBudget.toFixed(2)
       : "",
   ]
     .filter(Boolean)

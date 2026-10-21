@@ -1,4 +1,12 @@
-import {normalizeBuildIntent,tokenProductionProfile,type BuildIntent} from "./tokenPlan";
+import { interactionProfile } from "./interactionProfile";
+import { roleConfidence } from "./roleConfidence";
+import { deploymentPenalty } from "./deploymentCost";
+import { reliableRole } from "./mechanicalSupport";
+import {
+  normalizeBuildIntent,
+  tokenProductionProfile,
+  type BuildIntent,
+} from "./tokenPlan";
 import {
   exchangesAllDrawnCards,
   singleDrawExchangesPermanent,
@@ -49,6 +57,7 @@ export const constructionText = (card: Card) =>
 export function constructionRoles(
   card: Card,
   commander: Card,
+  context: Card[] = [],
 ): ConstructionRole[] {
   const text = constructionText(card).replace(/\([^()]*\)/g, ""),
     signal = commanderSignals([commander]),
@@ -69,10 +78,10 @@ export function constructionRoles(
     !oneShotManaFilter(card)
   )
     roles.push("ramp");
-  const tokens=tokenProductionProfile(card);
-  if(tokens.reliableCreatureMaker)roles.push("production");
-  if(tokens.untapSupport)roles.push("untap");
-  if(tokens.teamHaste)roles.push("haste");
+  const tokens = tokenProductionProfile(card);
+  if (tokens.reliableCreatureMaker) roles.push("production");
+  if (tokens.untapSupport) roles.push("untap");
+  if (tokens.teamHaste) roles.push("haste");
   const repeat =
     !/Instant|Sorcery/.test(
       card.card_faces?.[0]?.type_line || card.type_line || "",
@@ -102,23 +111,7 @@ export function constructionRoles(
       ))
   )
     roles.push("advantage");
-  if (
-    /counter target[^.\n]{0,40}(?:spell|ability)(?![^.\n]*you control)/i.test(
-      text,
-    ) ||
-    /owner of target (?:nonland )?permanent shuffles it into their library/i.test(
-      text,
-    ) ||
-    (/(?:destroy|exile) target (?:nonland |noncreature |attacking |blocking |tapped |untapped )?(?:creature|artifact|enchantment|permanent)/i.test(
-      text,
-    ) &&
-      !/target[^.\n]{0,40}you control/i.test(text)) ||
-    (/return target[^.\n]*(?:permanent|creature)[^.\n]*to (?:its|their) owner's hand/i.test(
-      text,
-    ) &&
-      !/return target[^.\n]*graveyard/i.test(text))
-  )
-    roles.push("interaction");
+  if (interactionProfile(card, context).present) roles.push("interaction");
   const damageSweep =
     /\b(?:deals?|deal) (x|[0-9]+|one|two|three|four|five|six|seven|eight|nine|ten) damage to each creature\b/i.exec(
       text,
@@ -167,15 +160,27 @@ export function constructionRoles(
     )
   )
     roles.push("finisher");
-  return roles;
+  return roles.filter((role) => reliableRole(card, role, commander, context));
 }
-export function constructionTargets(commander: Card,intent?:BuildIntent) {
-  const plan=normalizeBuildIntent(intent);
-  if(plan.primary === "tokens")return {production:plan.tokenEngine==='lasting'?18:22,untap:plan.tokenEngine==='lasting'?5:0,haste:plan.combat === "large-hasty" ? 3 : 0,ramp:8,advantage:plan.supplementalDraw === "reduced" ? 5 : 8,interaction:7,wipes:3,protection:3,finisher:5};
+export function constructionTargets(commander: Card, intent?: BuildIntent) {
+  const plan = normalizeBuildIntent(intent);
+  if (plan.primary === "tokens")
+    return {
+      production: plan.tokenEngine === "lasting" ? 18 : 22,
+      untap: plan.tokenEngine === "lasting" ? 5 : 0,
+      haste: plan.combat === "large-hasty" ? 3 : 0,
+      ramp: 8,
+      advantage: plan.supplementalDraw === "reduced" ? 5 : 8,
+      interaction: 7,
+      wipes: 3,
+      protection: 3,
+      finisher: 5,
+    };
   const s = commanderSignals([commander]);
   return {
-    production:0,untap:0,
-    haste:0,
+    production: 0,
+    untap: 0,
+    haste: 0,
     ramp: 10,
     advantage: 10,
     interaction: s.typal.length ? 7 : 8,
@@ -185,8 +190,9 @@ export function constructionTargets(commander: Card,intent?:BuildIntent) {
   };
 }
 export const roleBudgetShares: Record<ConstructionRole, number> = {
-  production:0,untap:0,
-  haste:0,
+  production: 0,
+  untap: 0,
+  haste: 0,
   ramp: 0.15,
   advantage: 0.18,
   interaction: 0.14,
@@ -207,15 +213,32 @@ export function supportQuality(
       card.card_faces?.[0]?.type_line || card.type_line || "",
     );
   let score = 30 - Math.min(mv, 10) * 2;
-  if(role === "production")score += tokenProductionProfile(card).score;
-  if(role === "untap")score += tokenProductionProfile(card).recurringUntap ? 100 : 40;
-  if(role === "haste")score += tokenProductionProfile(card).teamHaste ? 40 : -100;
-  if (role === "ramp") {score += 20 - Math.min(mv, 8) * 5;if(/search your library[^]*?(?:land|Forest|Plains)[^]*?onto the battlefield/i.test(text))score+=25;}
-  if(role === "finisher"){
-   const profile=tokenProductionProfile(card);score+=Math.max(0,18-Math.log2(Math.max(1,card.edhrec_rank||200000)))*3;
-   if(/creatures you control[^.\n]*(?:\+[3-9]\/\+[3-9]|\+X\/\+X|double strike)/i.test(text))score+=65;
-   if(profile.teamPump&&/trample/i.test(text))score+=25;
-   if(/equipped creatures|artifact creatures/i.test(text))score-=25;
+  if (role === "production") score += tokenProductionProfile(card).score;
+  if (role === "untap")
+    score += tokenProductionProfile(card).recurringUntap ? 100 : 40;
+  if (role === "haste")
+    score += tokenProductionProfile(card).teamHaste ? 40 : -100;
+  if (role === "ramp") {
+    score += 20 - Math.min(mv, 8) * 5;
+    if (
+      /search your library[^]*?(?:land|Forest|Plains)[^]*?onto the battlefield/i.test(
+        text,
+      )
+    )
+      score += 25;
+  }
+  if (role === "finisher") {
+    const profile = tokenProductionProfile(card);
+    score +=
+      Math.max(0, 18 - Math.log2(Math.max(1, card.edhrec_rank || 200000))) * 3;
+    if (
+      /creatures you control[^.\n]*(?:\+[3-9]\/\+[3-9]|\+X\/\+X|double strike)/i.test(
+        text,
+      )
+    )
+      score += 65;
+    if (profile.teamPump && /trample/i.test(text)) score += 25;
+    if (/equipped creatures|artifact creatures/i.test(text)) score -= 25;
   }
   if (role === "advantage") {
     if (/whenever|at the beginning/i.test(text)) score += 16;
@@ -233,6 +256,9 @@ export function supportQuality(
     /Creature|Artifact|Enchantment/.test(card.type_line || "")
   )
     score += 12;
-  if (/as an additional cost|activate only|unless/i.test(text)) score -= 5;
+  score -= deploymentPenalty(card, role, [commander]);
+  const confidence = roleConfidence(card, [commander]);
+  if (role === "advantage" && confidence.delayedDeath) score -= 8;
+  if (/activate only/i.test(text)) score -= 5;
   return score;
 }

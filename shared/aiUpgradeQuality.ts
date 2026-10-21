@@ -1,3 +1,6 @@
+import { colorlessSupport } from "./basicMana";
+import { activeDeckCards } from "./deckContext";
+import { reproductionReason } from "./deckEligibility";
 import { discussionSearches } from "./aiDiscussion";
 import { strategicProfile, rampSequence } from "./strategicQuality";
 import { resolveMTGTerms, termById } from "./mtgGlossary";
@@ -41,8 +44,9 @@ import { isLandSlot } from "./landAllocation";
 import { oracleKey, buildQuote } from "./deckBuilder";
 import { entryUnitPrice } from "./cardPresentation";
 const labels: Record<ConstructionRole, string> = {
-  untap:"Untap support",production:"own creature-token production",
-  haste:"team haste",
+  untap: "Untap support",
+  production: "own creature-token production",
+  haste: "team haste",
   ramp: "mana acceleration",
   advantage: "card advantage",
   interaction: "interaction",
@@ -192,17 +196,23 @@ export function analyzeAIDeck(deck: Document) {
       Object.keys(constructionTargets(commander)).map((r) => [r, 0]),
     ) as Record<ConstructionRole, number>;
   for (const e of main)
-    for (const r of constructionRoles(e.card, commander)) roles[r] += e.qty;
+    for (const r of constructionRoles(e.card, commander, activeDeckCards(deck)))
+      roles[r] += e.qty;
   const nonlands = main.filter((e) => !isLandSlot(e.card)),
     count = nonlands.reduce((n, e) => n + e.qty, 0);
   return {
     commander: commander.name,
+    colorlessSupport: colorlessSupport(deck.entries),
     roles,
     primaryRoleSlots: Object.fromEntries(
       Object.keys(roles).map((role) => [
         role,
         main.reduce((n, e) => {
-          const rs = constructionRoles(e.card, commander).sort(
+          const rs = constructionRoles(
+            e.card,
+            commander,
+            activeDeckCards(deck),
+          ).sort(
             (a, b) =>
               supportQuality(e.card, b, commander) -
               supportQuality(e.card, a, commander),
@@ -212,14 +222,20 @@ export function analyzeAIDeck(deck: Document) {
       ]),
     ),
     uniqueRoleSlots: main
-      .filter((e) => constructionRoles(e.card, commander).length > 0)
+      .filter(
+        (e) =>
+          constructionRoles(e.card, commander, activeDeckCards(deck)).length >
+          0,
+      )
       .reduce((n, e) => n + e.qty, 0),
     conditionalRoleSlots: main
       .filter(
         (e) =>
           /choose one|sacrifice|\{T\}|combat damage|whenever[^.\n]*attacks/i.test(
             frontText(e.card),
-          ) && constructionRoles(e.card, commander).length > 0,
+          ) &&
+          constructionRoles(e.card, commander, activeDeckCards(deck)).length >
+            0,
       )
       .reduce((n, e) => n + e.qty, 0),
     roleAvailabilityNote:
@@ -250,13 +266,15 @@ function qualityCache(
   const commander = deck.entries.find((e) => e.board === "commander")!.card,
     cards = [
       ...new Map(
-        [...deck.entries.map((e) => e.card), ...candidates].map((c) => [
-          c.id,
-          c,
-        ]),
+        [...activeDeckCards(deck), ...candidates].map((c) => [c.id, c]),
       ).values(),
     ],
-    roles = new Map(cards.map((c) => [c.id, constructionRoles(c, commander)]));
+    roles = new Map(
+      cards.map((c) => [
+        c.id,
+        constructionRoles(c, commander, activeDeckCards(deck).concat(c)),
+      ]),
+    );
   return {
     request,
     before: analyzeAIDeck(deck)!,
@@ -291,8 +309,23 @@ export function assessAIUpgrade(
       cache?.request ?? parseAIRequest([{ role: "user", content: goal }]),
     signals = commanderSignals([commander]),
     old =
-      cache?.roles.get(cut.card.id) ?? constructionRoles(cut.card, commander),
-    next = cache?.roles.get(add.id) ?? constructionRoles(add, commander),
+      cache?.roles.get(cut.card.id) ??
+      constructionRoles(cut.card, commander, activeDeckCards(deck)),
+    next =
+      cache?.roles.get(add.id) ??
+      constructionRoles(
+        add,
+        commander,
+        deck.entries
+          .filter(
+            (e) =>
+              e.id !== cut.id &&
+              e.qty > 0 &&
+              (e.board === "mainboard" || e.board === "commander"),
+          )
+          .map((e) => e.card)
+          .concat(add),
+      ),
     wanted = requestedRoles(goal),
     before = cache?.before ?? analyzeAIDeck(deck)!,
     scores =
@@ -309,6 +342,24 @@ export function assessAIUpgrade(
     quality: undefined,
   });
   if (request.errors.length) return reject(request.errors.join(" "));
+  if (
+    typeof add.cmc === "number" &&
+    add.cmc <= 3 &&
+    /\{C\}/.test(add.card_faces?.[0]?.mana_cost ?? add.mana_cost ?? "")
+  ) {
+    const support = colorlessSupport([
+      ...deck.entries.filter((e) => e.id !== cut.id),
+      { card: add, qty: 1, board: "mainboard" },
+    ]);
+    if (!support.meetsPlanningTarget)
+      return reject(
+        "The current mana base does not meet the conservative explicit-colorless support target (" +
+          support.creditedSources +
+          "/" +
+          support.planningTarget +
+          "). Generic, conditional and summoning-delayed mana are not independent early sources; review mana support before adding this interaction.",
+      );
+  }
   if (!pairMatchesAIRequest(cut.card, add, request))
     return reject(
       "Does not meet the exact card type/mana request or would fail to increase the requested group.",
@@ -405,12 +456,22 @@ export function assessAIUpgrade(
     commander,
     deck.commanderBracket,
     request.manaValue !== undefined,
+    deck.entries
+      .filter(
+        (e) =>
+          e.id !== cut.id &&
+          e.qty > 0 &&
+          (e.board === "mainboard" || e.board === "commander"),
+      )
+      .map((e) => e.card)
+      .concat(add),
   );
   const cutStrategy = strategicProfile(
     cut.card,
     commander,
     deck.commanderBracket,
     request.manaValue !== undefined,
+    activeDeckCards(deck),
   );
   const score =
     addStrategy.adjustment -
@@ -465,7 +526,7 @@ export function assessAIUpgrade(
     ? `Gives up ${cut.card.name}'s ${lost.map((r) => labels[r]).join(" and ")} coverage; the remaining deck must still meet its existing targets.`
     : copyGain
       ? `You lose ${cut.card.name}${cut.card.power ? "’s " + cut.card.power + "/" + cut.card.toughness + " body" : "'s slot"}; extra entry value still needs the commander's copy/blink ability.`
-      : `Costs ${add.cmc || 0} mana instead of ${cut.card.cmc || 0}; the added effect is conditional on its actual rules text, not a guaranteed power increase.`;
+      : `Printed mana value ${add.cmc || 0} versus ${cut.card.cmc || 0}; this is not the full deployment payment. Mode, setup and resource conditions still apply.`;
   const changed = [...new Set([...wanted, ...old, ...next])].slice(0, 3);
   return {
     accepted: true,
@@ -530,6 +591,7 @@ export function recommendAIUpgrades(
   const pool = new Map<string, Card>();
   for (const c of candidates) {
     if (
+      reproductionReason(c) ||
       !matchesAIRequest(c, request) ||
       installed.has(oracleKey(c)) ||
       isLandSlot(c) ||

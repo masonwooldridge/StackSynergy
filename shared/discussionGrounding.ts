@@ -1,9 +1,13 @@
+import {deckPlanReadiness} from "./planReadiness";
+import { manaAvailability } from "./mtgCardFunctions";
+import { interactionProfile } from "./interactionProfile";
+import { activeDeckCards } from "./deckContext";
 import type { Card, Document } from "./model";
 import type { AIRequest } from "./aiConstraints";
 import { sameSuggestedCard } from "./suggestionMembership";
 import { frontText } from "./cardFunction";
 import { strategicProfile } from "./strategicQuality";
-export const DISCUSSION_GROUNDING_VERSION = "oracle-evidence-v1";
+export const DISCUSSION_GROUNDING_VERSION = "oracle-evidence-v2";
 const rulesSource =
   "https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt";
 export const discussionRules = [
@@ -97,7 +101,18 @@ export function discussionCardFacts(card: Card, deck?: Document) {
     (e) => e.board === "commander" && e.qty > 0,
   )?.card;
   const strategy = commander
-    ? strategicProfile(card, commander, deck?.commanderBracket || 3)
+    ? strategicProfile(
+        card,
+        commander,
+        deck?.commanderBracket || 3,
+        undefined,
+        deck?.entries
+          .filter(
+            (e) =>
+              e.qty > 0 && (e.board === "mainboard" || e.board === "commander"),
+          )
+          .map((e) => e.card) || [],
+      )
     : undefined;
   return {
     id: card.id,
@@ -121,13 +136,16 @@ export function discussionCardFacts(card: Card, deck?: Document) {
             "No explicit exception in this text; normal copied characteristics apply.",
         }
       : null,
+    interaction: interactionProfile(card, deck ? activeDeckCards(deck) : []),
+    manaAvailability: manaAvailability(card, deck ? activeDeckCards(deck) : []),
     attackTrigger: !!strategy?.attackTrigger,
     combatDamageTrigger: !!strategy?.combatDamageTrigger,
     setup: strategy
       ? {
-          castMana: strategy.castMana,
+          printedManaValue: strategy.castMana,
+          deployment: strategy.deployment,
           equipMana: strategy.firstEquipMana,
-          activationMana: strategy.activationMana,
+          minimumAnyNonManaActivationMana: strategy.activationMana,
         }
       : null,
     limits: [...limits, ...(strategy?.notes || [])].slice(0, 4),
@@ -142,9 +160,14 @@ export function discussionGrounding(
 ) {
   const creatureDraw =
     /(?:^|[\s-])creatures?\b/i.test(goal) && /draw|card advantage/i.test(goal);
+  const answerRequest =
+    /interaction|removal|counterspells?|bounce|cleave|temporary exile/i.test(
+      goal,
+    );
   const interested = (c: Card) => {
     const t = frontText(c),
       type = c.card_faces?.[0]?.type_line || c.type_line || "";
+    if (answerRequest && !creatureDraw) return interactionProfile(c).present;
     return creatureDraw
       ? /Creature/.test(type) && /\bdraw\b/i.test(t)
       : /clone|cop(?:y|ies)/i.test(goal)
@@ -184,14 +207,26 @@ export function discussionGrounding(
   const focus = [...existing, ...options];
   return {
     version: DISCUSSION_GROUNDING_VERSION,
+    planReadiness:deckPlanReadiness(deck),
     rules: discussionRules,
     requestedCreatureDraw: creatureDraw,
     preferredDiscussionIds: focus.map((c) => c.id),
     installedDiscussionIds: existing.map((c) => c.id),
     newOptionDiscussionIds: options.map((c) => c.id),
-    evidence: focus.map((c) => discussionCardFacts(c, deck)),
+    evidence: [
+      ...new Map(
+        [
+          ...focus,
+          ...cards.filter((c) =>
+            goal.toLocaleLowerCase().includes(c.name.toLocaleLowerCase()),
+          ),
+        ].map((c) => [c.oracle_id || c.id, c]),
+      ).values(),
+    ]
+      .slice(0, 12)
+      .map((c) => discussionCardFacts(c, deck)),
     instruction:
-      "Use actual creature cards for a creature-card draw request. Noncreature payoffs may be contrasts, explicitly labeled. Discuss installed cards as installed and candidates as candidates; only propose additions from validatedSwapOptions. Read full supplied Oracle text for all limits. These notes are evidence, not a guaranteed combo, lethal route or proof of strategic quality.",
+      "Use actual creature cards for a creature-card draw request. Noncreature payoffs may be contrasts, explicitly labeled. Discuss installed cards as installed and candidates as candidates; only propose additions from validatedSwapOptions. Read full supplied Oracle text for all limits. These notes are evidence, not a guaranteed combo, lethal route or proof of strategic quality. Use planReadiness to distinguish structural completion from strategic readiness; explain shortfalls and offer explicit user choices rather than silently changing constraints or budget.",
     requestMode: request.mode,
   };
 }

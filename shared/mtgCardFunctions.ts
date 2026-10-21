@@ -1,3 +1,4 @@
+import { tokenProductionProfile } from "./tokenPlan";
 import type { Card } from "./model";
 import { frontFaceType } from "./landAllocation";
 import { frontText, oneShotManaFilter, sacrificesItself } from "./cardFunction";
@@ -72,6 +73,9 @@ export function manaProfile(card: Card) {
       net: out === null ? null : out - manaCost,
       selfSacrifice,
       conditional:
+        /\btap (?:an?|another|one|two|three|four|five|six|\d+|x)\b/i.test(
+          cost,
+        ) ||
         /only if|for each|equal to|spend this mana only|opponent|unless|collect evidence|forage|discard|exile[^:]*graveyard|remove[^:]*counter|pay[^:]*life|sacrifice|tap an? (?:untapped )?creature|tap another|\{E\}|\{Q\}/i.test(
           cost + " " + effect,
         ) ||
@@ -158,6 +162,84 @@ export function manaProfile(card: Card) {
     fixing,
   };
 }
+/** Source-list confidence only: selected support is not an untapped battlefield or cast probability. */
+export function manaAvailability(card: Card, context: Card[] = []) {
+  const p = manaProfile(card),
+    type = frontFaceType(card),
+    text = frontText(card),
+    notes: string[] = [];
+  const colorless = p.abilities.filter(
+    (a) =>
+      /\{C\}/.test(a.effect) &&
+      (a.net === null || a.net > 0) &&
+      !a.selfSacrifice,
+  );
+  const extraTap = colorless.some((a) =>
+    /\btap (?:an?|another|one|two|three|four|five|six|\d+|x)\b/i.test(a.cost),
+  );
+  const needsCreature =
+      extraTap && colorless.some((a) => /creature/i.test(a.cost)),
+    needsArtifact = extraTap && colorless.some((a) => /artifact/i.test(a.cost));
+  const enablers = extraTap
+    ? [
+        ...new Map(
+          context
+            .filter(
+              (c) => (c.oracle_id || c.id) !== (card.oracle_id || card.id),
+            )
+            .map((c) => [c.oracle_id || c.id, c]),
+        ).values(),
+      ].filter((c) => {
+        const token = tokenProductionProfile(c),
+          t = frontFaceType(c);
+        return (
+          (needsCreature && (/Creature/.test(t) || token.ownCreature)) ||
+          (needsArtifact &&
+            (/Artifact/.test(t) ||
+              token.ownResource ||
+              (token.ownCreature &&
+                /creat[^.\n]*artifact creature token/i.test(frontText(c)))))
+        );
+      }).length
+    : 0;
+  const summoningDelay =
+    /Creature/.test(type) &&
+    colorless.some((a) => /\{T\}/.test(a.cost)) &&
+    !/\bhaste\b/i.test(text);
+  const independent = colorless.some((a) => !a.conditional && a.manaCost === 0);
+  const fastIndependent =
+    !/Land/.test(type) &&
+    (!/Creature/.test(type) || /\bhaste\b/i.test(text)) &&
+    typeof card.cmc === "number" &&
+    card.cmc <= 2 &&
+    !/\{C\}/.test(card.mana_cost || "") &&
+    !p.entersTapped &&
+    independent;
+  if (extraTap)
+    notes.push(
+      `Colorless engine needs another eligible untapped permanent; ${enablers} distinct selected enablers${enablers ? " provide list support" : " do not establish support"}. Tokens/resources are not assumed already available. This is conditional production, not an independent early source.`,
+    );
+  if (summoningDelay)
+    notes.push(
+      "This creature's own {T} mana ability normally waits for haste or a later turn; it is not credited as an independent early colorless source.",
+    );
+  if (colorless.some((a) => a.conditional) && !extraTap)
+    notes.push(
+      "Colorless production has an activation/resource restriction; it is not credited as an independent early source.",
+    );
+  return {
+    explicitColorless: colorless.length > 0,
+    fastIndependentColorless: fastIndependent,
+    delayedColorless: independent && !fastIndependent,
+    summoningDelay,
+    conditionalColorless: colorless.some((a) => a.conditional),
+    additionalTap: extraTap,
+    selectedEnablers: enablers,
+    conditionalSupportInList: extraTap && enablers > 0,
+    notes,
+  };
+}
+
 export function cardFunctionFacts(card: Card) {
   const raw = frontText(card),
     text = raw.replace(/\([^()]*\)/g, ""),

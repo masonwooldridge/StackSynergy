@@ -30,6 +30,7 @@ export const documentSchema = z.object({
   notes: z.string().max(10000),
   entries: z.array(entrySchema).max(20000),
   revision: z.number().int().min(0),
+  casualProxyAccepted: z.boolean().optional(),
   deleted: z.boolean().optional(),
   commanderBracket:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5)]).optional(),
   strategy: z.object({tags:z.array(z.string().max(60)).max(12),creatureTypes:z.array(z.string().max(60)).max(2),labels:z.array(z.string().max(60)).max(12)}).optional(),

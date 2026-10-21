@@ -1,5 +1,6 @@
+import {mechanicalPrerequisites} from "./mechanicalSupport";
 import {bracketCheck} from './commanderBrackets';
-import {isMainDeckCard} from "./deckEligibility";
+import {isMainDeckCard,reproductionReason} from "./deckEligibility";
 export interface Card {
   edhrec_rank?: number;
   id: string;
@@ -18,6 +19,7 @@ export interface Card {
   mana_cost?: string;
   color_identity?: string[];
   legalities?: Record<string, string>;
+  border_color?: string;
   set?: string;
   set_name?: string;
   collector_number?: string;
@@ -58,6 +60,7 @@ export interface Document {
   notes: string;
   entries: Entry[];
   revision: number;
+  casualProxyAccepted?: boolean;
   deleted?: boolean;
   commanderBracket?: 1|2|3|4|5;
   strategy?: {tags:string[];creatureTypes:string[];labels:string[]};
@@ -95,6 +98,8 @@ export function validateDeck(d: Document) {
   );
   const count = main.reduce((n, e) => n + e.qty, 0);
   for(const entry of active)if(!isMainDeckCard(entry.card))errors.push(`${entry.card.name} is an auxiliary/non-paper card and cannot be in this deck.`);
+  for (const entry of active) if (reproductionReason(entry.card)) warnings.push(`${entry.card.name}: ${d.casualProxyAccepted ? 'Casual proxy use acknowledged; still not tournament eligible.' : reproductionReason(entry.card)}`);
+  for (const entry of main) for (const note of mechanicalPrerequisites(entry.card, main.map(e => e.card), main.filter(e => e.board === "commander").map(e => e.card))) warnings.push(`${entry.card.name}: mechanical review — ${note}`);
   const commanders = active.filter((e) => e.board === "commander");
   if (d.format === "commander") {
     if (count !== 100)

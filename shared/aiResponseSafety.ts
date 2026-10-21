@@ -144,7 +144,7 @@ export function assertDiscussionAdditions(
     const rejected = excludedNames.includes(card.name.toLocaleLowerCase());
     if (!present && !rejected) continue;
     const recommendation = new RegExp(
-      "(?:^|[;:\\n])\\s*(?:[-*]\\s*)?(?:add|include|buy|pick up|consider adding|try adding)\\s+(?:a |an |one |1 )?" +
+      "(?:^|[;:\\n])\\s*(?:[-*]\\s*)?(?:add|include|buy|pick up|consider(?: adding)?|try(?: adding)?|i(?: would|'d)? (?:recommend|suggest) (?:adding|including|buying)|you (?:could|should|might|can) (?:add|include|buy)|(?:another|a different|a better) option (?:is|would be))\\s+(?:a |an |one |1 )?" +
         escape(card.name) +
         "\\b",
       "i",
