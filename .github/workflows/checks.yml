@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      # Mobile imports shared sources whose dependencies resolve from the repo root.
+      - run: npm ci
       - run: npm ci --prefix mobile
       - run: npm run mobile:check
